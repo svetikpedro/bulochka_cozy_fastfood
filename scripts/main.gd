@@ -12,7 +12,19 @@ const AMBIENT_ENERGY := 0.28
 const AMBIENT_COLOR := Color("#fff0e1")
 const ENV_BACKGROUND_COLOR := Color("#bde5cd")
 const TONEMAP_EXPOSURE := 1.0
-const GAME_VERSION := "0.0.03"
+const GAME_VERSION := "0.0.04"
+
+const BURGER_COUNTER_SURFACE_Y := 1.12
+const INGREDIENT_RISER_H := 0.10
+const INGREDIENT_STATION_Y := 1.30
+const GRILL_STATION_Y := 1.20
+const ASSEMBLY_STATION_Y := 1.18
+const HUD_FONT_SIZE := 14
+const HUD_PANEL_BG := Color("#fff7f2", 0.58)
+const HUD_PANEL_BG_SOFT := Color("#fff7f2", 0.42)
+const HUD_TEXT_DARK := Color("#40363d")
+const HUD_TEXT_MUTED := Color("#6b5d68", 0.88)
+const FPS_TEXT_COLOR := Color("#171417", 0.70)
 
 const FONT_REGULAR_LATIN := "res://assets/fonts/Nunito-Regular.ttf"
 const FONT_SEMIBOLD_LATIN := "res://assets/fonts/Nunito-SemiBold.ttf"
@@ -76,6 +88,7 @@ var queue_label: Label
 var progress_bar: ProgressBar
 var progress_label: Label
 var debug_info_label: Label
+var interaction_prompt_panel: PanelContainer
 var interaction_prompt_label: Label
 var status_panel: PanelContainer
 var status_hide_timer: Timer
@@ -142,9 +155,9 @@ var pretty = {
 
 var colors = {
 	"bun_bottom": Color("#e9ad5e"),
-	"raw_patty": Color("#b65f5f"),
+	"raw_patty": Color("#c45a4a"),
 	"cooked_patty": Color("#744936"),
-	"cheese": Color("#ffd85c"),
+	"cheese": Color("#f5d070"),
 	"lettuce": Color("#8dcf72"),
 	"tomato": Color("#e96161"),
 	"bun_top": Color("#f1b768"),
@@ -300,18 +313,21 @@ func _load_fonts() -> void:
 	if not font_bold:
 		font_bold = load(FONT_BOLD_LATIN) as Font
 
-func _stylebox_panel(bg_alpha := 0.82, radius := 10) -> StyleBoxFlat:
+func _stylebox_panel(bg_alpha := 0.82, radius := 10, bg_color: Color = Color(0.19, 0.14, 0.2, bg_alpha)) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0.19, 0.14, 0.2, bg_alpha)
+	box.bg_color = bg_color if bg_color.a > 0.0 else Color(0.19, 0.14, 0.2, bg_alpha)
 	box.corner_radius_top_left = radius
 	box.corner_radius_top_right = radius
 	box.corner_radius_bottom_left = radius
 	box.corner_radius_bottom_right = radius
 	box.content_margin_left = 12
-	box.content_margin_top = 10
+	box.content_margin_top = 8
 	box.content_margin_right = 12
-	box.content_margin_bottom = 10
+	box.content_margin_bottom = 8
 	return box
+
+func _stylebox_hud_panel(alpha := 0.58, radius := 12) -> StyleBoxFlat:
+	return _stylebox_panel(alpha, radius, HUD_PANEL_BG if alpha >= 0.5 else HUD_PANEL_BG_SOFT)
 
 func _build_ui_theme() -> Theme:
 	var theme := Theme.new()
@@ -321,6 +337,30 @@ func _build_ui_theme() -> Theme:
 	theme.set_color("font_color", "Label", COLOR_TEXT_LIGHT)
 	theme.set_stylebox("panel", "PanelContainer", _stylebox_panel())
 	return theme
+
+func _hud_label(parent: Node, color: Color, use_font: Font = null, semibold := false) -> Label:
+	var label := Label.new()
+	label.add_theme_font_size_override("font_size", HUD_FONT_SIZE)
+	label.add_theme_color_override("font_color", color)
+	var chosen := use_font if use_font else (font_semibold if semibold else font_regular)
+	if chosen:
+		label.add_theme_font_override("font", chosen)
+	parent.add_child(label)
+	return label
+
+func _label3d_wall(parent: Node, text: String, pos: Vector3, font_size: int, color: Color) -> Label3D:
+	var label := Label3D.new()
+	label.text = text
+	label.position = pos
+	label.font_size = font_size
+	label.modulate = color
+	label.outline_size = 2
+	label.outline_modulate = Color("#fff7ee")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	label.font = font_semibold
+	parent.add_child(label)
+	return label
 
 func _ui_label(parent: Node, font_size: int, color: Color, font: Font = null) -> Label:
 	var label := Label.new()
@@ -481,20 +521,93 @@ func _build_counter_decor(world: Node3D) -> void:
 	_box(world, "CounterSign", Vector3(-3.9, 1.85, -2.05), Vector3(0.55, 0.35, 0.06), Color("#fff0da"), false)
 	_label3d(world, "OPEN", Vector3(-3.9, 1.85, -2.12), 14, Color("#6b5060"), 3)
 
-func _build_ingredient_bin(parent: Node, name: String, pos: Vector3, item_id: String, display_name: String) -> StaticBody3D:
+func _build_ingredient_bin(parent: Node, name: String, pos: Vector3, item_id: String, display_name: String, use_riser := false) -> StaticBody3D:
+	if use_riser:
+		_box(
+			parent,
+			name + "Riser",
+			Vector3(pos.x, BURGER_COUNTER_SURFACE_Y + INGREDIENT_RISER_H * 0.5, pos.z),
+			Vector3(0.66, INGREDIENT_RISER_H, 0.66),
+			Color("#ede2d4"),
+			false
+		)
+
 	var station := _station(
 		parent,
 		name,
 		pos,
-		Vector3(0.62, 0.22, 0.62),
+		Vector3(0.58, 0.18, 0.58),
 		colors[item_id],
 		"ingredient",
 		display_name,
 		item_id
 	)
-	_box(station, "BinRim", Vector3(0, -0.06, 0), Vector3(0.72, 0.10, 0.72), Color("#e8ddd0"), false)
-	_box(station, "BinInner", Vector3(0, -0.02, 0), Vector3(0.58, 0.06, 0.58), Color("#d8cdbf"), false)
+	_box(station, "BinRim", Vector3(0, 0.0, 0), Vector3(0.68, 0.08, 0.68), Color("#e8ddd0"), false)
+	_box(station, "BinInner", Vector3(0, 0.03, 0), Vector3(0.54, 0.05, 0.54), Color("#d8cdbf"), false)
 	return station
+
+func _add_bottom_bun_visuals(station: StaticBody3D) -> void:
+	for i in range(3):
+		var offset_x := -0.08 + i * 0.08
+		_cylinder(station, Vector3(offset_x, 0.11, 0.0), 0.14, 0.032, colors["bun_bottom"], 90)
+		var dome := _sphere(station, Vector3(offset_x, 0.135, 0.0), 0.11, colors["bun_bottom"])
+		dome.scale = Vector3(1.0, 0.38, 1.0)
+
+func _add_cheese_visuals(station: StaticBody3D) -> void:
+	for i in range(4):
+		var slice := _box(
+			station,
+			"CheeseSlice",
+			Vector3(-0.08 + i * 0.055, 0.12 + i * 0.008, 0.0),
+			Vector3(0.20, 0.04, 0.20),
+			colors["cheese"],
+			false
+		)
+		slice.rotation_degrees.y = -14 + i * 9
+		slice.rotation_degrees.z = 3 + i * 2
+
+func _add_lettuce_visuals(station: StaticBody3D) -> void:
+	for i in range(4):
+		var leaf := _cylinder(
+			station,
+			Vector3(-0.10 + i * 0.07, 0.11 + i * 0.012, 0.0),
+			0.14 + i * 0.01,
+			0.038,
+			colors["lettuce"],
+			90
+		)
+		leaf.scale = Vector3(0.92 + i * 0.04, 0.75, 1.05)
+		leaf.rotation_degrees.y = -16 + i * 11
+
+func _add_tomato_visuals(station: StaticBody3D) -> void:
+	for i in range(4):
+		var slice := _cylinder(
+			station,
+			Vector3(-0.09 + i * 0.06, 0.12, 0.0),
+			0.13,
+			0.035,
+			colors["tomato"],
+			90
+		)
+		slice.rotation_degrees.y = -12 + i * 8
+		slice.rotation_degrees.x = 6 + i * 2
+
+func _add_top_bun_visuals(station: StaticBody3D) -> void:
+	for i in range(2):
+		var offset_x := -0.05 + i * 0.10
+		var top := _sphere(station, Vector3(offset_x, 0.15, 0.0), 0.13, colors["bun_top"])
+		top.scale = Vector3(1.0, 0.46, 1.0)
+		for s in range(3):
+			_sphere(
+				station,
+				Vector3(offset_x + [-0.04, 0.04, 0.0][s], 0.19, [-0.03, 0.03, 0.0][s]),
+				0.010,
+				Color("#fff0da")
+			)
+
+func _add_raw_patty_visuals(station: StaticBody3D) -> void:
+	for i in range(3):
+		_cylinder(station, Vector3(-0.08 + i * 0.08, 0.12, 0.0), 0.16, 0.05, colors["raw_patty"], 90)
 
 func _build_burger_prep_counter(world: Node3D) -> void:
 	var center := Vector3(0.0, 0.45, 2.55)
@@ -503,43 +616,67 @@ func _build_burger_prep_counter(world: Node3D) -> void:
 	_box(world, "BurgerPrepBacksplash", Vector3(0, 1.35, 3.18), Vector3(5.4, 0.45, 0.08), Color("#efcad3"), false)
 
 func _build_burger_workstation(world: Node3D) -> void:
-	var station_y := 1.03
-	var bin_z := 2.78
+	var back_z := 2.85
+	var front_z := 2.22
 
-	var bun_bottom = _build_ingredient_bin(world, "BunBottom", Vector3(-1.65, station_y, bin_z), "bun_bottom", "Нижняя булочка")
-	for i in range(3):
-		_cylinder(bun_bottom, Vector3(-0.08 + i * 0.08, 0.12, 0.02), 0.17, 0.055, colors["bun_bottom"], 90)
+	var bun_bottom = _build_ingredient_bin(
+		world, "BunBottom", Vector3(-1.8, INGREDIENT_STATION_Y, back_z), "bun_bottom", "Нижняя булочка", true
+	)
+	_add_bottom_bun_visuals(bun_bottom)
 
-	var cheese = _build_ingredient_bin(world, "Cheese", Vector3(-0.82, station_y, bin_z), "cheese", "Сыр")
-	for i in range(3):
-		var slice = _box(cheese, "CheeseSlice", Vector3(-0.06 + i * 0.06, 0.10, 0.0), Vector3(0.22, 0.025, 0.22), colors["cheese"], false)
-		slice.rotation_degrees.y = -8 + i * 10
+	var cheese = _build_ingredient_bin(
+		world, "Cheese", Vector3(-0.9, INGREDIENT_STATION_Y, back_z), "cheese", "Сыр", true
+	)
+	_add_cheese_visuals(cheese)
 
-	var lettuce = _build_ingredient_bin(world, "Lettuce", Vector3(0.0, station_y, 2.95), "lettuce", "Салат")
-	for i in range(3):
-		var leaf = _cylinder(lettuce, Vector3(-0.08 + i * 0.08, 0.10, 0.0), 0.16, 0.025, colors["lettuce"], 90)
-		leaf.rotation_degrees.y = -12 + i * 12
+	var lettuce = _build_ingredient_bin(
+		world, "Lettuce", Vector3(0.0, INGREDIENT_STATION_Y, 2.88), "lettuce", "Салат", true
+	)
+	_add_lettuce_visuals(lettuce)
 
-	var tomato = _build_ingredient_bin(world, "Tomato", Vector3(0.82, station_y, bin_z), "tomato", "Помидор")
-	for i in range(3):
-		_cylinder(tomato, Vector3(-0.07 + i * 0.07, 0.10, 0.0), 0.13, 0.025, colors["tomato"], 90)
+	var tomato = _build_ingredient_bin(
+		world, "Tomato", Vector3(0.9, INGREDIENT_STATION_Y, back_z), "tomato", "Помидор", true
+	)
+	_add_tomato_visuals(tomato)
 
-	var bun_top = _build_ingredient_bin(world, "BunTop", Vector3(1.65, station_y, bin_z), "bun_top", "Верхняя булочка")
-	for i in range(2):
-		var top = _sphere(bun_top, Vector3(-0.05 + i * 0.10, 0.14 + i * 0.03, 0.0), 0.17, colors["bun_top"])
-		top.scale = Vector3(1.0, 0.52, 1.0)
-		for s in range(4):
-			_sphere(bun_top, Vector3(-0.05 + i * 0.10 + randf_range(-0.06, 0.06), 0.20 + i * 0.03, randf_range(-0.06, 0.06)), 0.012, Color("#fff0da"))
+	var bun_top = _build_ingredient_bin(
+		world, "BunTop", Vector3(1.8, INGREDIENT_STATION_Y, back_z), "bun_top", "Верхняя булочка", true
+	)
+	_add_top_bun_visuals(bun_top)
 
-	var raw_patty = _build_ingredient_bin(world, "RawPatty", Vector3(-2.45, station_y, 2.35), "raw_patty", "Сырая котлета")
-	for i in range(3):
-		_cylinder(raw_patty, Vector3(-0.08 + i * 0.08, 0.10, 0.0), 0.17, 0.045, colors["raw_patty"], 90)
+	var raw_patty = _build_ingredient_bin(
+		world, "RawPatty", Vector3(-1.55, GRILL_STATION_Y, front_z), "raw_patty", "Сырая котлета"
+	)
+	_add_raw_patty_visuals(raw_patty)
 
-	var grill_station = _station(world, "Grill", Vector3(-1.55, station_y, 2.35), Vector3(0.95, 0.25, 0.82), Color("#5f6066"), "grill", "Гриль", "", true)
+	var grill_station = _station(
+		world, "Grill", Vector3(-0.55, GRILL_STATION_Y, front_z),
+		Vector3(0.95, 0.25, 0.82), Color("#5f6066"), "grill", "Гриль", "", true
+	)
 	_build_grill_details(grill_station)
 
-	var assembly_station = _station(world, "Assembly", Vector3(0.0, station_y, 2.35), Vector3(0.88, 0.22, 0.82), Color("#fff1d4"), "assemble", "Сборка бургера", "", true)
+	var assembly_station = _station(
+		world, "Assembly", Vector3(0.65, ASSEMBLY_STATION_Y, front_z),
+		Vector3(0.95, 0.22, 0.82), Color("#fff1d4"), "assemble", "Сборка бургера", "", true
+	)
 	_build_burger_assembly_board(assembly_station)
+
+	_label3d_wall(world, "ИНГРЕДИЕНТЫ", Vector3(0.0, 1.58, 3.12), WORLD_FONT_SMALL, Color("#5c4f56"))
+	_label3d_wall(world, "ГРИЛЬ", Vector3(-0.55, 1.42, 3.08), WORLD_FONT_SMALL, Color("#5c4f56"))
+	_label3d_wall(world, "СБОРКА", Vector3(0.65, 1.42, 3.08), WORLD_FONT_SMALL, Color("#5c4f56"))
+
+	var recipe_card := Node3D.new()
+	recipe_card.name = "RecipeCard"
+	recipe_card.position = Vector3(1.35, ASSEMBLY_STATION_Y + 0.02, 2.35)
+	world.add_child(recipe_card)
+	_box(recipe_card, "RecipeBoard", Vector3(0, 0.08, 0), Vector3(0.30, 0.02, 0.40), Color("#fff0da"), false)
+	_label3d_wall(
+		recipe_card,
+		"БУРГЕР\nбулочка\nкотлета\nсыр\nсалат\nтомат\nбулочка",
+		Vector3(0, 0.15, 0.02),
+		9,
+		Color("#5c4f56")
+	)
 
 	_build_burger_counter_clutter(world)
 
@@ -557,16 +694,17 @@ func _build_grill_details(grill_station: StaticBody3D) -> void:
 	grill_indicator = _sphere(grill_station, Vector3(0.34, 0.22, -0.38), 0.035, Color("#5a5a5a"))
 
 func _build_burger_assembly_board(assembly_station: StaticBody3D) -> void:
-	_box(assembly_station, "BoardFrame", Vector3(0, 0.0, 0), Vector3(0.88, 0.05, 0.72), Color("#c8a888"), false)
-	_box(assembly_station, "AssemblyBoard", Vector3(0, 0.03, 0), Vector3(0.82, 0.04, 0.66), Color("#fff0da"), false)
+	_box(assembly_station, "BoardFrame", Vector3(0, 0.0, 0), Vector3(0.98, 0.06, 0.78), Color("#c8a888"), false)
+	_box(assembly_station, "AssemblyBoard", Vector3(0, 0.04, 0), Vector3(0.92, 0.04, 0.72), Color("#fff0da"), false)
+	_box(assembly_station, "BoardHandle", Vector3(0.42, 0.04, 0.0), Vector3(0.08, 0.05, 0.22), Color("#b89470"), false)
 	assembly_visual = Node3D.new()
-	assembly_visual.position = Vector3(0, 0.16, 0)
+	assembly_visual.position = Vector3(0, 0.18, 0)
 	assembly_station.add_child(assembly_visual)
 
 func _build_burger_counter_clutter(world: Node3D) -> void:
 	var clutter := Node3D.new()
 	clutter.name = "BurgerClutter"
-	clutter.position = Vector3(1.35, 1.01, 2.35)
+	clutter.position = Vector3(1.55, BURGER_COUNTER_SURFACE_Y - 0.11, 2.22)
 	world.add_child(clutter)
 	_box(clutter, "NapkinDispenser", Vector3(0, 0.08, 0.42), Vector3(0.18, 0.22, 0.14), Color("#fff0da"), false)
 	_cylinder(clutter, Vector3(0.28, 0.10, 0.15), 0.04, 0.18, Color("#ffd2df"))
@@ -943,22 +1081,22 @@ func _build_ui() -> void:
 
 	var left_panel := PanelContainer.new()
 	left_panel.position = Vector2(14, 14)
-	left_panel.custom_minimum_size = Vector2(430, 128)
-	left_panel.add_theme_stylebox_override("panel", _stylebox_panel(0.84, 12))
+	left_panel.custom_minimum_size = Vector2(360, 0)
+	left_panel.add_theme_stylebox_override("panel", _stylebox_hud_panel(0.58, 12))
 	left_panel.theme = ui_theme
 	layer.add_child(left_panel)
 
 	var left_box := VBoxContainer.new()
-	left_box.add_theme_constant_override("separation", 4)
+	left_box.add_theme_constant_override("separation", 2)
 	left_panel.add_child(left_box)
 
-	day_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_MUTED)
-	order_label = _ui_label(left_box, UI_FONT_TITLE, COLOR_TEXT_LIGHT, font_bold)
-	order_items_label = _ui_label(left_box, UI_FONT_MEDIUM, COLOR_TEXT_ACCENT, font_semibold)
-	tray_label = _ui_label(left_box, UI_FONT_BODY, COLOR_TEXT_MUTED)
-	held_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_MUTED)
-	stack_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_MUTED)
-	money_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_LIGHT, font_semibold)
+	day_label = _hud_label(left_box, HUD_TEXT_MUTED)
+	order_label = _hud_label(left_box, HUD_TEXT_DARK, null, true)
+	order_items_label = _hud_label(left_box, Color("#7a5160"), null, true)
+	tray_label = _hud_label(left_box, HUD_TEXT_MUTED)
+	held_label = _hud_label(left_box, HUD_TEXT_MUTED)
+	stack_label = _hud_label(left_box, HUD_TEXT_MUTED)
+	money_label = _hud_label(left_box, HUD_TEXT_DARK, null, true)
 
 	var right_panel := PanelContainer.new()
 	right_panel.anchor_left = 1.0
@@ -968,8 +1106,8 @@ func _build_ui() -> void:
 	right_panel.offset_left = -236
 	right_panel.offset_right = -14
 	right_panel.offset_top = 14
-	right_panel.offset_bottom = 112
-	right_panel.add_theme_stylebox_override("panel", _stylebox_panel(0.72, 10))
+	right_panel.offset_bottom = 108
+	right_panel.add_theme_stylebox_override("panel", _stylebox_hud_panel(0.42, 10))
 	right_panel.theme = ui_theme
 	layer.add_child(right_panel)
 
@@ -977,15 +1115,15 @@ func _build_ui() -> void:
 	right_box.add_theme_constant_override("separation", 3)
 	right_panel.add_child(right_box)
 
-	queue_label = _ui_label(right_box, UI_FONT_BODY, COLOR_TEXT_SECONDARY, font_semibold)
+	queue_label = _hud_label(right_box, HUD_TEXT_MUTED, null, true)
 	queue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
-	var help := _ui_label(right_box, UI_FONT_SMALL, COLOR_TEXT_SECONDARY)
+	var help := _hud_label(right_box, HUD_TEXT_MUTED)
 	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.text = "WASD — ходить\nМышь — смотреть\nE — действие\nEsc — мышь"
 
-	var hint := _ui_label(right_box, UI_FONT_SMALL - 1, COLOR_TEXT_MUTED)
+	var hint := _hud_label(right_box, HUD_TEXT_MUTED)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.text = "После выдачи гость идёт за столик."
 
@@ -1054,21 +1192,25 @@ func _build_ui() -> void:
 	cross.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
 	layer.add_child(cross)
 
+	interaction_prompt_panel = PanelContainer.new()
+	interaction_prompt_panel.anchor_left = 0.5
+	interaction_prompt_panel.anchor_right = 0.5
+	interaction_prompt_panel.anchor_top = 0.5
+	interaction_prompt_panel.anchor_bottom = 0.5
+	interaction_prompt_panel.offset_left = -240
+	interaction_prompt_panel.offset_right = 240
+	interaction_prompt_panel.offset_top = 28
+	interaction_prompt_panel.offset_bottom = 66
+	interaction_prompt_panel.visible = false
+	interaction_prompt_panel.add_theme_stylebox_override("panel", _stylebox_hud_panel(0.48, 8))
+	layer.add_child(interaction_prompt_panel)
+
 	interaction_prompt_label = Label.new()
-	interaction_prompt_label.anchor_left = 0.5
-	interaction_prompt_label.anchor_right = 0.5
-	interaction_prompt_label.anchor_top = 0.5
-	interaction_prompt_label.anchor_bottom = 0.5
-	interaction_prompt_label.offset_left = -220
-	interaction_prompt_label.offset_right = 220
-	interaction_prompt_label.offset_top = 34
-	interaction_prompt_label.offset_bottom = 62
 	interaction_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	interaction_prompt_label.add_theme_font_override("font", font_semibold)
-	interaction_prompt_label.add_theme_font_size_override("font_size", UI_FONT_MEDIUM)
-	interaction_prompt_label.add_theme_color_override("font_color", COLOR_TEXT_LIGHT)
-	interaction_prompt_label.visible = false
-	layer.add_child(interaction_prompt_label)
+	interaction_prompt_label.add_theme_font_size_override("font_size", HUD_FONT_SIZE)
+	interaction_prompt_label.add_theme_color_override("font_color", HUD_TEXT_DARK)
+	interaction_prompt_panel.add_child(interaction_prompt_label)
 
 	debug_info_label = Label.new()
 	debug_info_label.anchor_left = 1.0
@@ -1081,8 +1223,8 @@ func _build_ui() -> void:
 	debug_info_label.offset_bottom = 28
 	debug_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	debug_info_label.add_theme_font_override("font", font_regular)
-	debug_info_label.add_theme_font_size_override("font_size", UI_FONT_SMALL)
-	debug_info_label.add_theme_color_override("font_color", Color(0.72, 0.72, 0.76, 0.72))
+	debug_info_label.add_theme_font_size_override("font_size", 11)
+	debug_info_label.add_theme_color_override("font_color", FPS_TEXT_COLOR)
 	layer.add_child(debug_info_label)
 
 	_update_ui()
@@ -1107,11 +1249,15 @@ func _resolve_interaction_text(station: Node) -> String:
 				return "Забрать котлету с гриля"
 			return "Гриль"
 		"assemble":
-			if held_item != "":
-				return "Положить на доску"
 			if burger_stack.size() >= burger_recipe.size():
 				return "Бургер собран"
-			return "Сборка бургера"
+			var expected: String = burger_recipe[burger_stack.size()]
+			var expected_name: String = pretty[expected]
+			if held_item == "":
+				return "Следующий слой: " + expected_name
+			if held_item == expected:
+				return "Положить " + expected_name.to_lower()
+			return "Нужен: " + expected_name
 		"fries":
 			if busy:
 				return "Картошка жарится"
@@ -1128,24 +1274,24 @@ func _resolve_interaction_text(station: Node) -> String:
 			return station.get_interaction_text()
 
 func _update_interaction_prompt() -> void:
-	if not interaction_prompt_label:
+	if not interaction_prompt_label or not interaction_prompt_panel:
 		return
 	if not player or not player.has_method("get_interact_target"):
-		interaction_prompt_label.visible = false
+		interaction_prompt_panel.visible = false
 		return
 
 	var target = player.get_interact_target()
 	if not target:
-		interaction_prompt_label.visible = false
+		interaction_prompt_panel.visible = false
 		return
 
 	var action_text := _resolve_interaction_text(target)
 	if action_text == "":
-		interaction_prompt_label.visible = false
+		interaction_prompt_panel.visible = false
 		return
 
-	interaction_prompt_label.text = "E  " + action_text
-	interaction_prompt_label.visible = true
+	interaction_prompt_label.text = "[E]  " + action_text
+	interaction_prompt_panel.visible = true
 
 func _hide_status_panel() -> void:
 	if not status_panel:

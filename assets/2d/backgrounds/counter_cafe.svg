@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#FFF0DA"/>
+  <rect x="0" y="0" width="1280" height="520" fill="#FFF7ED"/>
+  <rect x="0" y="500" width="1280" height="12" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="0" y="512" width="1280" height="208" fill="#D29A72" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="0" y="560" width="1280" height="160" fill="#B87958" opacity="0.35"/>
+
+  <!-- Pink awning -->
+  <path d="M0 80 Q640 20 1280 80 L1280 130 Q640 90 0 130 Z" fill="#F4B6C7" stroke="#6B4C52" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M40 130 Q640 100 1240 130" fill="none" stroke="#E98FA9" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Garland -->
+  <path d="M60 130 Q320 160 580 130 Q840 100 1100 130 Q1220 145 1220 145" fill="none" stroke="#78B96A" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="120" cy="145" r="8" fill="#F6CB62" stroke="#6B4C52" stroke-width="3"/>
+  <circle cx="280" cy="155" r="8" fill="#E98FA9" stroke="#6B4C52" stroke-width="3"/>
+  <circle cx="440" cy="140" r="8" fill="#A9D8ED" stroke="#6B4C52" stroke-width="3"/>
+  <circle cx="600" cy="150" r="8" fill="#F6CB62" stroke="#6B4C52" stroke-width="3"/>
+  <circle cx="760" cy="135" r="8" fill="#E98FA9" stroke="#6B4C52" stroke-width="3"/>
+  <circle cx="920" cy="148" r="8" fill="#A9D8ED" stroke="#6B4C52" stroke-width="3"/>
+  <circle cx="1080" cy="142" r="8" fill="#F6CB62" stroke="#6B4C52" stroke-width="3"/>
+
+  <!-- Left windows -->
+  <rect x="40" y="160" width="220" height="180" rx="12" fill="#B87958" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="52" y="172" width="196" height="156" rx="8" fill="#A9D8ED" stroke="#6B4C52" stroke-width="4"/>
+  <line x1="150" y1="172" x2="150" y2="328" stroke="#6B4C52" stroke-width="3"/>
+  <line x1="52" y1="250" x2="248" y2="250" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="100" cy="210" rx="24" ry="12" fill="#FFF7ED" opacity="0.5"/>
+  <path d="M280 160 Q300 140 320 160" fill="#78B96A" stroke="#6B4C52" stroke-width="4"/>
+
+  <!-- Pendant lamps -->
+  <line x1="400" y1="130" x2="400" y2="200" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="400" cy="210" rx="28" ry="18" fill="#F6CB62" stroke="#6B4C52" stroke-width="4"/>
+  <line x1="640" y1="130" x2="640" y2="200" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="640" cy="210" rx="28" ry="18" fill="#F6CB62" stroke="#6B4C52" stroke-width="4"/>
+  <line x1="880" y1="130" x2="880" y2="200" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="880" cy="210" rx="28" ry="18" fill="#F6CB62" stroke="#6B4C52" stroke-width="4"/>
+
+  <!-- Posters -->
+  <rect x="280" y="180" width="80" height="60" rx="6" fill="#FFF7ED" stroke="#6B4C52" stroke-width="4"/>
+  <ellipse cx="320" cy="200" rx="18" ry="10" fill="#D29A72" stroke="#6B4C52" stroke-width="3"/>
+  <path d="M302 220 L338 220" stroke="#F6CB62" stroke-width="4" stroke-linecap="round"/>
+  <rect x="920" y="180" width="80" height="60" rx="6" fill="#FFF7ED" stroke="#6B4C52" stroke-width="4"/>
+  <path d="M940 200 L960 230 L940 230 Z" fill="#F6CB62" stroke="#6B4C52" stroke-width="3"/>
+
+  <!-- Wall shelf -->
+  <rect x="1020" y="200" width="180" height="12" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="1040" y="170" width="24" height="30" rx="4" fill="#A9D8ED" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="1080" y="175" width="20" height="25" rx="4" fill="#F4B6C7" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="1140" cy="188" rx="12" ry="16" fill="#78B96A" stroke="#6B4C52" stroke-width="3"/>
+
+  <!-- Dining tables row -->
+  <ellipse cx="220" cy="430" rx="90" ry="16" fill="#5A454B" opacity="0.12"/>
+  <rect x="160" y="380" width="120" height="12" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="150" y="392" width="8" height="40" rx="2" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="272" y="392" width="8" height="40" rx="2" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="170" y="400" width="28" height="28" rx="8" fill="#F4B6C7" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="242" y="400" width="28" height="28" rx="8" fill="#F4B6C7" stroke="#6B4C52" stroke-width="4"/>
+
+  <ellipse cx="520" cy="430" rx="90" ry="16" fill="#5A454B" opacity="0.12"/>
+  <rect x="460" y="380" width="120" height="12" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="450" y="392" width="8" height="40" rx="2" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="572" y="392" width="8" height="40" rx="2" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="470" y="400" width="28" height="28" rx="8" fill="#F4B6C7" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="542" y="400" width="28" height="28" rx="8" fill="#F4B6C7" stroke="#6B4C52" stroke-width="4"/>
+
+  <ellipse cx="820" cy="430" rx="90" ry="16" fill="#5A454B" opacity="0.12"/>
+  <rect x="760" y="380" width="120" height="12" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="750" y="392" width="8" height="40" rx="2" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="872" y="392" width="8" height="40" rx="2" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="770" y="400" width="28" height="28" rx="8" fill="#F4B6C7" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="842" y="400" width="28" height="28" rx="8" fill="#F4B6C7" stroke="#6B4C52" stroke-width="4"/>
+
+  <!-- Booth -->
+  <path d="M1040 480 L1040 360 Q1120 340 1200 360 L1200 480 Z" fill="#F4B6C7" stroke="#6B4C52" stroke-width="5" stroke-linejoin="round"/>
+  <rect x="1060" y="400" width="120" height="12" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="4"/>
+
+  <!-- Floor plants -->
+  <rect x="60" y="460" width="10" height="40" rx="3" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="65" cy="450" rx="28" ry="20" fill="#78B96A" stroke="#6B4C52" stroke-width="4"/>
+  <ellipse cx="45" cy="440" rx="16" ry="12" fill="#A6D68E" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="1180" y="460" width="10" height="40" rx="3" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="1185" cy="450" rx="28" ry="20" fill="#78B96A" stroke="#6B4C52" stroke-width="4"/>
+
+  <!-- Hanging plants -->
+  <line x1="180" y1="130" x2="180" y2="170" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="180" cy="185" rx="22" ry="16" fill="#78B96A" stroke="#6B4C52" stroke-width="4"/>
+  <line x1="1100" y1="130" x2="1100" y2="170" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="1100" cy="185" rx="22" ry="16" fill="#78B96A" stroke="#6B4C52" stroke-width="4"/>
+
+  <!-- Counter top surface detail -->
+  <rect x="0" y="512" width="1280" height="48" fill="#D29A72" stroke="none"/>
+  <path d="M0 560 Q640 548 1280 560" fill="none" stroke="#B87958" stroke-width="3" opacity="0.5"/>
+</svg>

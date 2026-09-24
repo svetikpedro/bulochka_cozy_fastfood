@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 220">
+  <rect x="20" y="30" width="260" height="170" rx="14" fill="#FFF7ED" stroke="#6B4C52" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="36" y="46" width="228" height="130" rx="10" fill="#B87958" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="48" y="58" width="204" height="106" rx="8" fill="#D29A72" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="60" y="70" width="180" height="82" rx="6" fill="#5A454B" opacity="0.15"/>
+  <line x1="70" y1="110" x2="230" y2="110" stroke="#5A454B" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+  <line x1="70" y1="130" x2="230" y2="130" stroke="#5A454B" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+  <line x1="70" y1="150" x2="230" y2="150" stroke="#5A454B" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+  <circle cx="48" cy="48" r="14" fill="#E98FA9" stroke="#6B4C52" stroke-width="4"/>
+  <circle cx="252" cy="48" r="14" fill="#E98FA9" stroke="#6B4C52" stroke-width="4"/>
+  <circle cx="150" cy="38" r="8" fill="#F6CB62" stroke="#6B4C52" stroke-width="3"/>
+</svg>

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#FFF7ED"/>
+  <rect x="0" y="0" width="1280" height="180" fill="#F9CEDA" opacity="0.35"/>
+  <rect x="0" y="500" width="1280" height="12" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="0" y="512" width="1280" height="208" fill="#D29A72" stroke="#6B4C52" stroke-width="4"/>
+
+  <!-- Top shelves -->
+  <rect x="80" y="60" width="1120" height="16" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="80" y="120" width="1120" height="16" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="4"/>
+  <ellipse cx="160" cy="48" rx="18" ry="14" fill="#78B96A" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="240" y="30" width="40" height="30" rx="6" fill="#F4B6C7" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="320" y="34" width="36" height="26" rx="6" fill="#A9D8ED" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="420" cy="50" rx="16" ry="12" fill="#F6CB62" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="900" cy="48" rx="18" ry="14" fill="#78B96A" stroke="#6B4C52" stroke-width="4"/>
+  <rect x="980" y="30" width="40" height="30" rx="6" fill="#F4B6C7" stroke="#6B4C52" stroke-width="3"/>
+  <ellipse cx="1100" cy="108" rx="16" ry="12" fill="#A6D68E" stroke="#6B4C52" stroke-width="3"/>
+
+  <!-- Ingredient bin containers (empty metal trays) -->
+  <rect x="180" y="200" width="110" height="70" rx="8" fill="#FFF7ED" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="188" y="208" width="94" height="54" rx="4" fill="#E8EEF2" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="340" y="200" width="110" height="70" rx="8" fill="#FFF7ED" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="348" y="208" width="94" height="54" rx="4" fill="#E8EEF2" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="500" y="200" width="110" height="70" rx="8" fill="#FFF7ED" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="508" y="208" width="94" height="54" rx="4" fill="#E8EEF2" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="660" y="200" width="110" height="70" rx="8" fill="#FFF7ED" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="668" y="208" width="94" height="54" rx="4" fill="#E8EEF2" stroke="#6B4C52" stroke-width="3"/>
+  <rect x="820" y="200" width="110" height="70" rx="8" fill="#FFF7ED" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="828" y="208" width="94" height="54" rx="4" fill="#E8EEF2" stroke="#6B4C52" stroke-width="3"/>
+
+  <!-- Lower patty bin -->
+  <rect x="180" y="380" width="130" height="80" rx="8" fill="#FFF7ED" stroke="#6B4C52" stroke-width="5"/>
+  <rect x="190" y="390" width="110" height="60" rx="4" fill="#E8EEF2" stroke="#6B4C52" stroke-width="3"/>
+
+  <!-- Wall tiles -->
+  <g opacity="0.15">
+    <rect x="0" y="180" width="80" height="80" fill="#F4B6C7" stroke="#6B4C52" stroke-width="2"/>
+    <rect x="80" y="180" width="80" height="80" fill="#FFF0DA" stroke="#6B4C52" stroke-width="2"/>
+    <rect x="160" y="180" width="80" height="80" fill="#F4B6C7" stroke="#6B4C52" stroke-width="2"/>
+  </g>
+
+  <!-- Sauce bottles decor area -->
+  <rect x="980" y="280" width="60" height="12" rx="4" fill="#B87958" stroke="#6B4C52" stroke-width="3"/>
+
+  <!-- Counter front -->
+  <rect x="0" y="512" width="1280" height="48" fill="#D29A72"/>
+  <path d="M0 560 Q640 548 1280 560" fill="none" stroke="#B87958" stroke-width="3" opacity="0.5"/>
+
+  <!-- Subtle equipment shadow zones (grill/fryer/soda placed as sprites on top) -->
+  <ellipse cx="560" cy="460" rx="120" ry="20" fill="#5A454B" opacity="0.06"/>
+  <ellipse cx="320" cy="460" rx="80" ry="16" fill="#5A454B" opacity="0.06"/>
+  <ellipse cx="1060" cy="440" rx="70" ry="14" fill="#5A454B" opacity="0.06"/>
+</svg>

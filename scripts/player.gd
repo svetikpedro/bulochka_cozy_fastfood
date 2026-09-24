@@ -197,16 +197,22 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-func _try_interact() -> void:
+func get_interact_target():
 	if not ray:
-		return
+		return null
 
 	ray.force_raycast_update()
 	if ray.is_colliding():
 		var target = ray.get_collider()
 		if target and target.has_method("interact"):
-			_animate_paws()
-			target.interact()
+			return target
+	return null
+
+func _try_interact() -> void:
+	var target = get_interact_target()
+	if target:
+		_animate_paws()
+		target.interact()
 
 func _animate_paws() -> void:
 	var tween := create_tween()

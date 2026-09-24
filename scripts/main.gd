@@ -12,11 +12,40 @@ const AMBIENT_ENERGY := 0.28
 const AMBIENT_COLOR := Color("#fff0e1")
 const ENV_BACKGROUND_COLOR := Color("#bde5cd")
 const TONEMAP_EXPOSURE := 1.0
-const GAME_VERSION := "0.0.02"
+const GAME_VERSION := "0.0.03"
+
+const FONT_REGULAR_LATIN := "res://assets/fonts/Nunito-Regular.ttf"
+const FONT_SEMIBOLD_LATIN := "res://assets/fonts/Nunito-SemiBold.ttf"
+const FONT_BOLD_LATIN := "res://assets/fonts/Nunito-Bold.ttf"
+const FONT_REGULAR_CYRILLIC := "res://assets/fonts/Nunito-Regular-Cyrillic.ttf"
+const FONT_SEMIBOLD_CYRILLIC := "res://assets/fonts/Nunito-SemiBold-Cyrillic.ttf"
+const FONT_BOLD_CYRILLIC := "res://assets/fonts/Nunito-Bold-Cyrillic.ttf"
+
+const UI_FONT_SMALL := 12
+const UI_FONT_BODY := 14
+const UI_FONT_MEDIUM := 16
+const UI_FONT_TITLE := 20
+
+const WORLD_FONT_SMALL := 14
+const WORLD_FONT_BODY := 18
+const WORLD_FONT_TITLE := 30
+const WORLD_FONT_LOGO := 42
+
+const COLOR_TEXT_PRIMARY := Color("#554653")
+const COLOR_TEXT_SECONDARY := Color("#7a6874")
+const COLOR_TEXT_LIGHT := Color("#fff8f2")
+const COLOR_TEXT_ACCENT := Color("#c46f8d")
+const COLOR_TEXT_MUTED := Color("#fff8f2", 0.72)
+
+var ui_theme: Theme
+var font_regular: Font
+var font_semibold: Font
+var font_bold: Font
 
 var player
 
 var grill_visual: Node3D
+var grill_indicator: MeshInstance3D
 var fryer_visual: Node3D
 var soda_visual: Node3D
 var assembly_visual: Node3D
@@ -36,6 +65,7 @@ var table_positions = [
 ]
 
 var order_label: Label
+var order_items_label: Label
 var tray_label: Label
 var held_label: Label
 var stack_label: Label
@@ -46,6 +76,9 @@ var queue_label: Label
 var progress_bar: ProgressBar
 var progress_label: Label
 var debug_info_label: Label
+var interaction_prompt_label: Label
+var status_panel: PanelContainer
+var status_hide_timer: Timer
 
 var tray = []
 var current_order = []
@@ -141,6 +174,7 @@ var recipes = [
 func _ready() -> void:
 	add_to_group("game")
 	randomize()
+	_load_fonts()
 	_build_world()
 	_spawn_player()
 	_build_ui()
@@ -163,8 +197,10 @@ func _process(_delta: float) -> void:
 		var elapsed := total - cook_timer.time_left
 		progress_bar.value = clamp(elapsed / total * 100.0, 0.0, 100.0)
 
+	_update_interaction_prompt()
+
 	if debug_info_label:
-		debug_info_label.text = "FPS: %d   v%s" % [
+		debug_info_label.text = "%d FPS  •  v%s" % [
 			Engine.get_frames_per_second(),
 			GAME_VERSION
 		]
@@ -226,7 +262,7 @@ func _cylinder(parent: Node, pos: Vector3, radius: float, height: float, color: 
 	parent.add_child(mesh)
 	return mesh
 
-func _station(parent: Node, name: String, pos: Vector3, size: Vector3, color: Color, station_type: String, display_name: String, item_id := "") -> StaticBody3D:
+func _station(parent: Node, name: String, pos: Vector3, size: Vector3, color: Color, station_type: String, display_name: String, item_id := "", show_mesh := false) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = name
 	body.position = pos
@@ -236,12 +272,13 @@ func _station(parent: Node, name: String, pos: Vector3, size: Vector3, color: Co
 	body.item_id = item_id
 	parent.add_child(body)
 
-	var mesh := MeshInstance3D.new()
-	var b := BoxMesh.new()
-	b.size = size
-	mesh.mesh = b
-	mesh.material_override = _mat(color)
-	body.add_child(mesh)
+	if show_mesh:
+		var mesh := MeshInstance3D.new()
+		var b := BoxMesh.new()
+		b.size = size
+		mesh.mesh = b
+		mesh.material_override = _mat(color)
+		body.add_child(mesh)
 
 	var col := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -249,19 +286,60 @@ func _station(parent: Node, name: String, pos: Vector3, size: Vector3, color: Co
 	col.shape = shape
 	body.add_child(col)
 
-	var label := Label3D.new()
-	label.text = display_name + "\n[E]"
-	label.position = Vector3(0, size.y * 0.5 + 0.38, 0)
-	label.font_size = 24
-	label.outline_size = 6
-	label.outline_modulate = Color(1, 1, 1, 0.9)
-	label.modulate = Color("#553f4d")
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	body.add_child(label)
-
 	return body
 
-func _label3d(parent: Node, text: String, pos: Vector3, font_size: int, color: Color, outline_size := 6) -> Label3D:
+func _load_fonts() -> void:
+	# Cyrillic subsets also cover basic Latin used in HUD/menu text.
+	font_regular = load(FONT_REGULAR_CYRILLIC) as Font
+	font_semibold = load(FONT_SEMIBOLD_CYRILLIC) as Font
+	font_bold = load(FONT_BOLD_CYRILLIC) as Font
+	if not font_regular:
+		font_regular = load(FONT_REGULAR_LATIN) as Font
+	if not font_semibold:
+		font_semibold = load(FONT_SEMIBOLD_LATIN) as Font
+	if not font_bold:
+		font_bold = load(FONT_BOLD_LATIN) as Font
+
+func _stylebox_panel(bg_alpha := 0.82, radius := 10) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.19, 0.14, 0.2, bg_alpha)
+	box.corner_radius_top_left = radius
+	box.corner_radius_top_right = radius
+	box.corner_radius_bottom_left = radius
+	box.corner_radius_bottom_right = radius
+	box.content_margin_left = 12
+	box.content_margin_top = 10
+	box.content_margin_right = 12
+	box.content_margin_bottom = 10
+	return box
+
+func _build_ui_theme() -> Theme:
+	var theme := Theme.new()
+	theme.default_font = font_regular
+	theme.set_font("font", "Label", font_regular)
+	theme.set_font_size("font_size", "Label", UI_FONT_BODY)
+	theme.set_color("font_color", "Label", COLOR_TEXT_LIGHT)
+	theme.set_stylebox("panel", "PanelContainer", _stylebox_panel())
+	return theme
+
+func _ui_label(parent: Node, font_size: int, color: Color, font: Font = null) -> Label:
+	var label := Label.new()
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	var chosen := font
+	if not chosen:
+		if font_size >= UI_FONT_TITLE:
+			chosen = font_bold
+		elif font_size >= UI_FONT_BODY:
+			chosen = font_semibold
+		else:
+			chosen = font_regular
+	if chosen:
+		label.add_theme_font_override("font", chosen)
+	parent.add_child(label)
+	return label
+
+func _label3d(parent: Node, text: String, pos: Vector3, font_size: int, color: Color, outline_size := 4, centered := true, font: Font = null) -> Label3D:
 	var label := Label3D.new()
 	label.text = text
 	label.position = pos
@@ -269,9 +347,26 @@ func _label3d(parent: Node, text: String, pos: Vector3, font_size: int, color: C
 	label.modulate = color
 	label.outline_size = outline_size
 	label.outline_modulate = Color("#fff7ee")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if centered else HORIZONTAL_ALIGNMENT_LEFT
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	if font:
+		label.font = font
+	elif font_size >= WORLD_FONT_LOGO - 6:
+		label.font = font_bold
+	elif font_size >= WORLD_FONT_TITLE:
+		label.font = font_semibold
+	else:
+		label.font = font_regular
 	parent.add_child(label)
 	return label
+
+func _menu_board_text(parent: Node, title: String, lines: Array, z_offset := -0.10) -> void:
+	var title_y := 0.32
+	var line_spacing := 0.22
+	_label3d(parent, title, Vector3(0, title_y, z_offset), WORLD_FONT_TITLE, COLOR_TEXT_PRIMARY, 4, true, font_bold)
+	for i in range(lines.size()):
+		var line_y := title_y - 0.28 - i * line_spacing
+		_label3d(parent, lines[i], Vector3(0, line_y, z_offset), WORLD_FONT_SMALL, COLOR_TEXT_SECONDARY, 3)
 
 func _build_cafe_shell(world: Node3D) -> void:
 	_box(world, "Floor", Vector3(0, -0.2, 0), Vector3(12, 0.4, 10), Color("#f6e7d9"))
@@ -342,7 +437,9 @@ func _build_counter_decor(world: Node3D) -> void:
 		Vector3(2.0, 0.22, 0.72),
 		Color("#fff2ac"),
 		"serve",
-		"Выдать заказ"
+		"Выдать заказ",
+		"",
+		true
 	)
 
 	tray_visual = Node3D.new()
@@ -362,8 +459,9 @@ func _build_counter_decor(world: Node3D) -> void:
 
 	register_screen = Label3D.new()
 	register_screen.position = Vector3(0, 0.13, -0.40)
-	register_screen.font_size = 22
-	register_screen.modulate = Color("#6b4b5d")
+	register_screen.font_size = WORLD_FONT_BODY
+	register_screen.font = font_semibold
+	register_screen.modulate = COLOR_TEXT_PRIMARY
 	register_root.add_child(register_screen)
 
 	_box(register_root, "CardTerminal", Vector3(0.72, -0.12, -0.12), Vector3(0.34, 0.18, 0.42), Color("#c8dbea"), false)
@@ -377,64 +475,75 @@ func _build_counter_decor(world: Node3D) -> void:
 		_cylinder(shelf, Vector3(-0.22 + i * 0.22, 0.12, 0), 0.05, 0.14, Color("#ffe9ef"))
 	_box(shelf, "TakeawayBox", Vector3(0.28, 0.10, 0.05), Vector3(0.18, 0.12, 0.18), Color("#f4d6c8"), false)
 
-	_label3d(world, "БУЛОЧКА", Vector3(0, 3.55, 4.55), 42, Color("#6b4d5d"), 8)
-	_label3d(world, "COZY FAST FOOD", Vector3(0, 3.05, 4.55), 18, Color("#8a6678"), 5)
-	_label3d(world, "BURGERS • FRIES • DRINKS", Vector3(0, 2.72, 4.55), 14, Color("#8a6678"), 4)
+	_label3d(world, "БУЛОЧКА", Vector3(0, 3.62, 4.56), WORLD_FONT_LOGO, COLOR_TEXT_PRIMARY, 5, true, font_bold)
+	_label3d(world, "COZY FAST FOOD", Vector3(0, 3.18, 4.56), WORLD_FONT_SMALL, COLOR_TEXT_SECONDARY, 3)
 
 	_box(world, "CounterSign", Vector3(-3.9, 1.85, -2.05), Vector3(0.55, 0.35, 0.06), Color("#fff0da"), false)
-	_label3d(world, "OPEN", Vector3(-3.9, 1.85, -2.12), 16, Color("#6b5060"), 4)
+	_label3d(world, "OPEN", Vector3(-3.9, 1.85, -2.12), 14, Color("#6b5060"), 3)
 
-func _build_kitchen_decor(world: Node3D) -> void:
-	var prep_colors = [Color("#c5d9ef"), Color("#d7d7eb"), Color("#d9ead3"), Color("#e9d7ef")]
-	var prep_positions = [Vector3(-4.4, 0.45, 2.8), Vector3(-1.7, 0.45, 2.8), Vector3(1.0, 0.45, 2.8), Vector3(3.7, 0.45, 2.8)]
-	var prep_names = ["PrepA", "PrepB", "PrepC", "PrepD"]
+func _build_ingredient_bin(parent: Node, name: String, pos: Vector3, item_id: String, display_name: String) -> StaticBody3D:
+	var station := _station(
+		parent,
+		name,
+		pos,
+		Vector3(0.62, 0.22, 0.62),
+		colors[item_id],
+		"ingredient",
+		display_name,
+		item_id
+	)
+	_box(station, "BinRim", Vector3(0, -0.06, 0), Vector3(0.72, 0.10, 0.72), Color("#e8ddd0"), false)
+	_box(station, "BinInner", Vector3(0, -0.02, 0), Vector3(0.58, 0.06, 0.58), Color("#d8cdbf"), false)
+	return station
 
-	for i in range(4):
-		var pos = prep_positions[i]
-		_box(world, prep_names[i], pos, Vector3(2.0, 1.1, 1.2), prep_colors[i])
-		_box(world, prep_names[i] + "Top", Vector3(pos.x, pos.y + 0.63, pos.z), Vector3(2.05, 0.08, 1.25), Color("#fff0da"), false)
-		_box(world, prep_names[i] + "Kick", Vector3(pos.x, 0.08, pos.z + 0.52), Vector3(1.85, 0.12, 0.08), Color("#d8c4b0"), false)
-		for dx in [-0.45, 0.0, 0.45]:
-			_box(world, prep_names[i] + "Door", Vector3(pos.x + dx, pos.y, pos.z + 0.58), Vector3(0.52, 0.72, 0.06), prep_colors[i].darkened(0.08), false)
-			_box(world, prep_names[i] + "Handle", Vector3(pos.x + dx + 0.16, pos.y, pos.z + 0.63), Vector3(0.08, 0.06, 0.04), Color("#c8a888"), false)
+func _build_burger_prep_counter(world: Node3D) -> void:
+	var center := Vector3(0.0, 0.45, 2.55)
+	_box(world, "BurgerPrepCounter", center, Vector3(5.2, 1.1, 1.35), Color("#d9ead3"))
+	_box(world, "BurgerPrepTop", Vector3(center.x, center.y + 0.63, center.z), Vector3(5.3, 0.08, 1.4), Color("#fff0da"), false)
+	_box(world, "BurgerPrepBacksplash", Vector3(0, 1.35, 3.18), Vector3(5.4, 0.45, 0.08), Color("#efcad3"), false)
 
-	_box(world, "Backsplash", Vector3(0, 1.35, 4.72), Vector3(10.5, 0.55, 0.08), Color("#fff0da"), false)
-	_box(world, "BacksplashTile", Vector3(0, 1.35, 4.68), Vector3(10.5, 0.45, 0.04), Color("#efcad3"), false)
+func _build_burger_workstation(world: Node3D) -> void:
+	var station_y := 1.03
+	var bin_z := 2.78
 
-	for sx in [-4.8, -1.2, 2.4]:
-		_box(world, "KitchenShelf", Vector3(sx, 2.15, 4.65), Vector3(1.4, 0.08, 0.35), Color("#fff0da"), false)
-		_box(world, "JarA", Vector3(sx - 0.25, 2.28, 4.65), Vector3(0.12, 0.18, 0.12), Color("#cfe7ff"), false)
-		_box(world, "JarB", Vector3(sx + 0.25, 2.28, 4.65), Vector3(0.12, 0.18, 0.12), Color("#ffd2df"), false)
+	var bun_bottom = _build_ingredient_bin(world, "BunBottom", Vector3(-1.65, station_y, bin_z), "bun_bottom", "Нижняя булочка")
+	for i in range(3):
+		_cylinder(bun_bottom, Vector3(-0.08 + i * 0.08, 0.12, 0.02), 0.17, 0.055, colors["bun_bottom"], 90)
 
-	_box(world, "SupplyBox", Vector3(-5.2, 0.35, 3.5), Vector3(0.45, 0.35, 0.45), Color("#f4d6c8"), false)
-	_box(world, "SupplyBox2", Vector3(5.0, 0.35, 3.2), Vector3(0.38, 0.28, 0.38), Color("#ffe0e8"), false)
+	var cheese = _build_ingredient_bin(world, "Cheese", Vector3(-0.82, station_y, bin_z), "cheese", "Сыр")
+	for i in range(3):
+		var slice = _box(cheese, "CheeseSlice", Vector3(-0.06 + i * 0.06, 0.10, 0.0), Vector3(0.22, 0.025, 0.22), colors["cheese"], false)
+		slice.rotation_degrees.y = -8 + i * 10
 
-	var bun_bottom = _station(world, "BunBottom", Vector3(-4.75, 1.03, 2.7), Vector3(0.62, 0.25, 0.7), colors["bun_bottom"], "ingredient", "Нижняя булочка", "bun_bottom")
-	_box(bun_bottom, "Tray", Vector3(0, -0.08, 0), Vector3(0.72, 0.08, 0.78), Color("#c8dbea"), false)
-	_cylinder(bun_bottom, Vector3(0, 0.19, 0), 0.20, 0.08, colors["bun_bottom"], 90)
+	var lettuce = _build_ingredient_bin(world, "Lettuce", Vector3(0.0, station_y, 2.95), "lettuce", "Салат")
+	for i in range(3):
+		var leaf = _cylinder(lettuce, Vector3(-0.08 + i * 0.08, 0.10, 0.0), 0.16, 0.025, colors["lettuce"], 90)
+		leaf.rotation_degrees.y = -12 + i * 12
 
-	var raw_patty = _station(world, "RawPatty", Vector3(-4.0, 1.03, 2.7), Vector3(0.62, 0.25, 0.7), colors["raw_patty"], "ingredient", "Сырая котлета", "raw_patty")
-	_box(raw_patty, "Tray", Vector3(0, -0.08, 0), Vector3(0.72, 0.08, 0.78), Color("#c8dbea"), false)
-	_cylinder(raw_patty, Vector3(0, 0.18, 0), 0.19, 0.06, colors["raw_patty"], 90)
+	var tomato = _build_ingredient_bin(world, "Tomato", Vector3(0.82, station_y, bin_z), "tomato", "Помидор")
+	for i in range(3):
+		_cylinder(tomato, Vector3(-0.07 + i * 0.07, 0.10, 0.0), 0.13, 0.025, colors["tomato"], 90)
 
-	var cheese = _station(world, "Cheese", Vector3(-2.05, 1.03, 2.7), Vector3(0.55, 0.18, 0.7), colors["cheese"], "ingredient", "Сыр", "cheese")
-	_box(cheese, "Tray", Vector3(0, -0.08, 0), Vector3(0.68, 0.08, 0.75), Color("#c8dbea"), false)
-	_box(cheese, "CheeseVisual", Vector3(0, 0.15, 0), Vector3(0.34, 0.035, 0.34), colors["cheese"], false)
+	var bun_top = _build_ingredient_bin(world, "BunTop", Vector3(1.65, station_y, bin_z), "bun_top", "Верхняя булочка")
+	for i in range(2):
+		var top = _sphere(bun_top, Vector3(-0.05 + i * 0.10, 0.14 + i * 0.03, 0.0), 0.17, colors["bun_top"])
+		top.scale = Vector3(1.0, 0.52, 1.0)
+		for s in range(4):
+			_sphere(bun_top, Vector3(-0.05 + i * 0.10 + randf_range(-0.06, 0.06), 0.20 + i * 0.03, randf_range(-0.06, 0.06)), 0.012, Color("#fff0da"))
 
-	var lettuce = _station(world, "Lettuce", Vector3(-1.35, 1.03, 2.7), Vector3(0.55, 0.18, 0.7), colors["lettuce"], "ingredient", "Салат", "lettuce")
-	_box(lettuce, "Tray", Vector3(0, -0.08, 0), Vector3(0.68, 0.08, 0.75), Color("#c8dbea"), false)
-	_cylinder(lettuce, Vector3(0, 0.15, 0), 0.20, 0.04, colors["lettuce"], 90)
+	var raw_patty = _build_ingredient_bin(world, "RawPatty", Vector3(-2.45, station_y, 2.35), "raw_patty", "Сырая котлета")
+	for i in range(3):
+		_cylinder(raw_patty, Vector3(-0.08 + i * 0.08, 0.10, 0.0), 0.17, 0.045, colors["raw_patty"], 90)
 
-	var tomato = _station(world, "Tomato", Vector3(0.65, 1.03, 2.7), Vector3(0.55, 0.18, 0.7), colors["tomato"], "ingredient", "Помидор", "tomato")
-	_box(tomato, "Tray", Vector3(0, -0.08, 0), Vector3(0.68, 0.08, 0.75), Color("#c8dbea"), false)
-	_cylinder(tomato, Vector3(0, 0.15, 0), 0.16, 0.04, colors["tomato"], 90)
+	var grill_station = _station(world, "Grill", Vector3(-1.55, station_y, 2.35), Vector3(0.95, 0.25, 0.82), Color("#5f6066"), "grill", "Гриль", "", true)
+	_build_grill_details(grill_station)
 
-	var bun_top = _station(world, "BunTop", Vector3(1.35, 1.03, 2.7), Vector3(0.62, 0.25, 0.7), colors["bun_top"], "ingredient", "Верхняя булочка", "bun_top")
-	_box(bun_top, "Tray", Vector3(0, -0.08, 0), Vector3(0.72, 0.08, 0.78), Color("#c8dbea"), false)
-	var top = _sphere(bun_top, Vector3(0, 0.20, 0), 0.21, colors["bun_top"])
-	top.scale = Vector3(1.0, 0.55, 1.0)
+	var assembly_station = _station(world, "Assembly", Vector3(0.0, station_y, 2.35), Vector3(0.88, 0.22, 0.82), Color("#fff1d4"), "assemble", "Сборка бургера", "", true)
+	_build_burger_assembly_board(assembly_station)
 
-	var grill_station = _station(world, "Grill", Vector3(3.35, 1.03, 2.7), Vector3(0.95, 0.25, 0.8), Color("#5f6066"), "grill", "Гриль")
+	_build_burger_counter_clutter(world)
+
+func _build_grill_details(grill_station: StaticBody3D) -> void:
 	_box(grill_station, "GrillBody", Vector3(0, -0.05, 0), Vector3(1.05, 0.35, 0.88), Color("#6a6b72"), false)
 	_box(grill_station, "GrillBack", Vector3(0, 0.22, 0.38), Vector3(0.95, 0.28, 0.08), Color("#4a4b50"), false)
 	grill_visual = Node3D.new()
@@ -443,16 +552,43 @@ func _build_kitchen_decor(world: Node3D) -> void:
 	_box(grill_visual, "GrillSurface", Vector3(0, 0.02, 0), Vector3(0.82, 0.04, 0.62), Color("#2f3035"), false)
 	for x in [-0.30, -0.10, 0.10, 0.30]:
 		_box(grill_visual, "GrillLine", Vector3(x, 0, 0), Vector3(0.025, 0.035, 0.64), Color("#2f3035"), false)
-	for i in range(3):
-		_box(grill_station, "GrillButton", Vector3(-0.28 + i * 0.28, 0.22, -0.38), Vector3(0.12, 0.08, 0.06), [Color("#e96161"), Color("#ffd85c"), Color("#8dcf72")][i], false)
+	for i in range(2):
+		_cylinder(grill_station, Vector3(-0.22 + i * 0.44, 0.18, -0.38), 0.05, 0.05, Color("#8a8088"))
+	grill_indicator = _sphere(grill_station, Vector3(0.34, 0.22, -0.38), 0.035, Color("#5a5a5a"))
 
-	var assembly_station = _station(world, "Assembly", Vector3(4.1, 1.03, 2.7), Vector3(0.85, 0.25, 0.8), Color("#fff1d4"), "assemble", "Сборка бургера")
-	_box(assembly_station, "AssemblyBoard", Vector3(0, 0.02, 0), Vector3(0.78, 0.04, 0.68), Color("#fff0da"), false)
+func _build_burger_assembly_board(assembly_station: StaticBody3D) -> void:
+	_box(assembly_station, "BoardFrame", Vector3(0, 0.0, 0), Vector3(0.88, 0.05, 0.72), Color("#c8a888"), false)
+	_box(assembly_station, "AssemblyBoard", Vector3(0, 0.03, 0), Vector3(0.82, 0.04, 0.66), Color("#fff0da"), false)
 	assembly_visual = Node3D.new()
 	assembly_visual.position = Vector3(0, 0.16, 0)
 	assembly_station.add_child(assembly_visual)
 
-	var fryer_station = _station(world, "Fryer", Vector3(-4.6, 0.93, 0.65), Vector3(1.5, 0.4, 1.0), Color("#b7bcc4"), "fries", "Фритюрница")
+func _build_burger_counter_clutter(world: Node3D) -> void:
+	var clutter := Node3D.new()
+	clutter.name = "BurgerClutter"
+	clutter.position = Vector3(1.35, 1.01, 2.35)
+	world.add_child(clutter)
+	_box(clutter, "NapkinDispenser", Vector3(0, 0.08, 0.42), Vector3(0.18, 0.22, 0.14), Color("#fff0da"), false)
+	_cylinder(clutter, Vector3(0.28, 0.10, 0.15), 0.04, 0.18, Color("#ffd2df"))
+	_box(clutter, "TrayStack", Vector3(-0.30, 0.04, 0.38), Vector3(0.22, 0.06, 0.18), Color("#de809e"), false)
+	_box(clutter, "SmallJar", Vector3(0.15, 0.06, -0.35), Vector3(0.10, 0.12, 0.10), Color("#cfe7ff"), false)
+	_box(clutter, "SupplyTray", Vector3(-0.18, 0.04, -0.30), Vector3(0.16, 0.05, 0.16), Color("#f4d6c8"), false)
+
+func _build_kitchen_decor(world: Node3D) -> void:
+	_build_burger_prep_counter(world)
+	_build_burger_workstation(world)
+
+	_box(world, "Backsplash", Vector3(0, 1.35, 4.72), Vector3(10.5, 0.55, 0.08), Color("#fff0da"), false)
+	_box(world, "BacksplashTile", Vector3(0, 1.35, 4.68), Vector3(10.5, 0.45, 0.04), Color("#efcad3"), false)
+
+	for sx in [-4.8, 2.4]:
+		_box(world, "KitchenShelf", Vector3(sx, 2.15, 4.65), Vector3(1.4, 0.08, 0.35), Color("#fff0da"), false)
+		_box(world, "JarA", Vector3(sx - 0.25, 2.28, 4.65), Vector3(0.12, 0.18, 0.12), Color("#cfe7ff"), false)
+		_box(world, "JarB", Vector3(sx + 0.25, 2.28, 4.65), Vector3(0.12, 0.18, 0.12), Color("#ffd2df"), false)
+
+	_box(world, "SupplyBox", Vector3(-5.2, 0.35, 3.5), Vector3(0.45, 0.35, 0.45), Color("#f4d6c8"), false)
+
+	var fryer_station = _station(world, "Fryer", Vector3(-4.6, 0.93, 0.65), Vector3(1.5, 0.4, 1.0), Color("#b7bcc4"), "fries", "Фритюрница", "", true)
 	_box(fryer_station, "FryerBody", Vector3(0, -0.08, 0), Vector3(1.55, 0.55, 1.05), Color("#9aa0a8"), false)
 	_box(fryer_station, "FryerPanel", Vector3(0, 0.05, -0.48), Vector3(0.55, 0.18, 0.08), Color("#7a8088"), false)
 	for i in range(2):
@@ -468,7 +604,7 @@ func _build_kitchen_decor(world: Node3D) -> void:
 		var fry = _box(fryer_visual, "Fry", Vector3(fx, 0.15, fz), Vector3(0.08, 0.30, 0.08), Color("#f5cf57"), false)
 		fry.rotation_degrees.z = 8 + i * 5
 
-	var soda_station = _station(world, "Soda", Vector3(4.6, 1.38, 0.65), Vector3(1.4, 1.7, 0.8), Color("#94d7df"), "soda", "Автомат напитков")
+	var soda_station = _station(world, "Soda", Vector3(4.6, 1.38, 0.65), Vector3(1.4, 1.7, 0.8), Color("#94d7df"), "soda", "Автомат напитков", "", true)
 	_box(soda_station, "SodaScreen", Vector3(0, 0.35, -0.35), Vector3(0.75, 0.45, 0.08), Color("#fff0f5"), false)
 	_box(soda_station, "SodaDripTray", Vector3(0, -0.55, -0.35), Vector3(0.55, 0.08, 0.35), Color("#c8dbea"), false)
 	for i in range(3):
@@ -480,11 +616,10 @@ func _build_kitchen_decor(world: Node3D) -> void:
 	_cylinder(soda_visual, Vector3.ZERO, 0.16, 0.38, Color("#ffe9ef"))
 	_box(soda_visual, "Straw", Vector3(0.05, 0.30, 0), Vector3(0.035, 0.42, 0.035), Color("#e4789c"), false)
 
-	var trash_station = _station(world, "Trash", Vector3(5.0, 0.65, 3.95), Vector3(0.9, 1.2, 0.9), Color("#a9c7bb"), "trash", "Мусор")
+	var trash_station = _station(world, "Trash", Vector3(5.0, 0.65, 3.95), Vector3(0.9, 1.2, 0.9), Color("#a9c7bb"), "trash", "Мусор", "", true)
 	_box(trash_station, "TrashBody", Vector3(0, -0.05, 0), Vector3(0.75, 1.0, 0.75), Color("#8fb5a6"), false)
 	_box(trash_station, "TrashLid", Vector3(0, 0.58, 0), Vector3(0.82, 0.08, 0.82), Color("#7aa898"), false)
 	_box(trash_station, "TrashSlot", Vector3(0, 0.52, -0.28), Vector3(0.35, 0.06, 0.12), Color("#4a5a52"), false)
-	_label3d(trash_station, "TRASH", Vector3(0, 0.75, -0.42), 14, Color("#4a5a52"), 3)
 
 func _build_dining_decor(world: Node3D) -> void:
 	for x in [-3.15, 0.0, 3.15]:
@@ -510,19 +645,19 @@ func _build_wall_decor(world: Node3D) -> void:
 	var menu_data = [
 		{
 			"title": "BURGER",
-			"lines": "Classic\nCheese\nFresh",
+			"lines": ["Classic", "Cheese", "Fresh"],
 			"color": Color("#fff1d7"),
 			"icon_color": Color("#e9ad5e")
 		},
 		{
 			"title": "FRIES",
-			"lines": "Crispy\nSalty\nGolden",
+			"lines": ["Classic", "Crispy", "Hot"],
 			"color": Color("#ffe0e8"),
 			"icon_color": Color("#f5cf57")
 		},
 		{
 			"title": "DRINK",
-			"lines": "Cola\nBerry\nMint",
+			"lines": ["Cola", "Berry", "Soda"],
 			"color": Color("#e0f0ff"),
 			"icon_color": Color("#ef9fb6")
 		}
@@ -535,13 +670,12 @@ func _build_wall_decor(world: Node3D) -> void:
 			world,
 			"MenuBoard",
 			Vector3(x, 3.25, 4.68),
-			Vector3(2.1, 1.25, 0.12),
+			Vector3(2.1, 1.35, 0.12),
 			data["color"],
 			false
 		)
-		_box(board, "MenuFrame", Vector3(0, 0, -0.02), Vector3(2.0, 1.15, 0.04), Color("#fff0da"), false)
-		_label3d(board, data["title"], Vector3(0, 0.35, -0.08), 28, Color("#6b5060"), 5)
-		_label3d(board, data["lines"], Vector3(0, -0.18, -0.08), 14, Color("#8a6678"), 3)
+		_box(board, "MenuFrame", Vector3(0, 0, -0.02), Vector3(2.0, 1.25, 0.04), Color("#fff0da"), false)
+		_menu_board_text(board, data["title"], data["lines"])
 		if i == 0:
 			_cylinder(board, Vector3(0.55, -0.05, -0.10), 0.10, 0.06, data["icon_color"], 90)
 			_sphere(board, Vector3(0.55, 0.02, -0.10), 0.10, data["icon_color"])
@@ -654,19 +788,21 @@ func _make_current_customer_root(parent: Node) -> void:
 
 	current_name_label = Label3D.new()
 	current_name_label.position = Vector3(0, 3.28, 0)
-	current_name_label.font_size = 28
-	current_name_label.outline_size = 7
-	current_name_label.outline_modulate = Color(1, 1, 1, 0.92)
-	current_name_label.modulate = Color("#6b4d5d")
+	current_name_label.font = font_semibold
+	current_name_label.font_size = WORLD_FONT_BODY
+	current_name_label.outline_size = 5
+	current_name_label.outline_modulate = Color("#fff7ee")
+	current_name_label.modulate = COLOR_TEXT_PRIMARY
 	current_name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	current_customer_root.add_child(current_name_label)
 
 	current_order_label = Label3D.new()
 	current_order_label.position = Vector3(0, 3.90, 0)
-	current_order_label.font_size = 28
-	current_order_label.outline_size = 10
+	current_order_label.font = font_regular
+	current_order_label.font_size = WORLD_FONT_BODY
+	current_order_label.outline_size = 6
 	current_order_label.outline_modulate = Color("#fff7ee")
-	current_order_label.modulate = Color("#6b4d5d")
+	current_order_label.modulate = COLOR_TEXT_PRIMARY
 	current_order_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	current_customer_root.add_child(current_order_label)
 
@@ -801,61 +937,82 @@ func _build_timer() -> void:
 	add_child(cook_timer)
 
 func _build_ui() -> void:
+	ui_theme = _build_ui_theme()
 	var layer := CanvasLayer.new()
 	add_child(layer)
 
-	var panel := ColorRect.new()
-	panel.position = Vector2(18, 18)
-	panel.size = Vector2(650, 195)
-	panel.color = Color(0.19, 0.14, 0.2, 0.88)
-	layer.add_child(panel)
+	var left_panel := PanelContainer.new()
+	left_panel.position = Vector2(14, 14)
+	left_panel.custom_minimum_size = Vector2(430, 128)
+	left_panel.add_theme_stylebox_override("panel", _stylebox_panel(0.84, 12))
+	left_panel.theme = ui_theme
+	layer.add_child(left_panel)
 
-	day_label = _label(panel, Vector2(18, 10), Vector2(610, 26), 16)
-	order_label = _label(panel, Vector2(18, 38), Vector2(610, 30), 22)
-	tray_label = _label(panel, Vector2(18, 73), Vector2(610, 26), 17)
-	held_label = _label(panel, Vector2(18, 103), Vector2(610, 26), 17)
-	stack_label = _label(panel, Vector2(18, 133), Vector2(610, 26), 16)
-	money_label = _label(panel, Vector2(18, 163), Vector2(610, 24), 16)
+	var left_box := VBoxContainer.new()
+	left_box.add_theme_constant_override("separation", 4)
+	left_panel.add_child(left_box)
 
-	queue_label = Label.new()
-	queue_label.anchor_left = 1.0
-	queue_label.anchor_right = 1.0
-	queue_label.offset_left = -260
-	queue_label.offset_right = -18
-	queue_label.offset_top = 18
-	queue_label.offset_bottom = 48
+	day_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_MUTED)
+	order_label = _ui_label(left_box, UI_FONT_TITLE, COLOR_TEXT_LIGHT, font_bold)
+	order_items_label = _ui_label(left_box, UI_FONT_MEDIUM, COLOR_TEXT_ACCENT, font_semibold)
+	tray_label = _ui_label(left_box, UI_FONT_BODY, COLOR_TEXT_MUTED)
+	held_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_MUTED)
+	stack_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_MUTED)
+	money_label = _ui_label(left_box, UI_FONT_SMALL, COLOR_TEXT_LIGHT, font_semibold)
+
+	var right_panel := PanelContainer.new()
+	right_panel.anchor_left = 1.0
+	right_panel.anchor_right = 1.0
+	right_panel.anchor_top = 0.0
+	right_panel.anchor_bottom = 0.0
+	right_panel.offset_left = -236
+	right_panel.offset_right = -14
+	right_panel.offset_top = 14
+	right_panel.offset_bottom = 112
+	right_panel.add_theme_stylebox_override("panel", _stylebox_panel(0.72, 10))
+	right_panel.theme = ui_theme
+	layer.add_child(right_panel)
+
+	var right_box := VBoxContainer.new()
+	right_box.add_theme_constant_override("separation", 3)
+	right_panel.add_child(right_box)
+
+	queue_label = _ui_label(right_box, UI_FONT_BODY, COLOR_TEXT_SECONDARY, font_semibold)
 	queue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	queue_label.add_theme_font_size_override("font_size", 18)
-	queue_label.add_theme_color_override("font_color", Color("#4d4050"))
-	layer.add_child(queue_label)
 
-	var help := Label.new()
-	help.anchor_left = 1.0
-	help.anchor_right = 1.0
-	help.offset_left = -405
-	help.offset_right = -18
-	help.offset_top = 58
-	help.offset_bottom = 176
-	help.text = "WASD — ходить\nМышь — смотреть\nE — взаимодействовать\nEsc — отпустить мышь\n\nПосле выдачи гость идёт за столик,\nа очередь двигается вперёд."
+	var help := _ui_label(right_box, UI_FONT_SMALL, COLOR_TEXT_SECONDARY)
 	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	help.add_theme_font_size_override("font_size", 15)
-	help.add_theme_color_override("font_color", Color("#4d4050"))
-	layer.add_child(help)
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	help.text = "WASD — ходить\nМышь — смотреть\nE — действие\nEsc — мышь"
 
-	status_label = Label.new()
-	status_label.anchor_left = 0.5
-	status_label.anchor_right = 0.5
-	status_label.anchor_top = 1.0
-	status_label.anchor_bottom = 1.0
-	status_label.offset_left = -430
-	status_label.offset_right = 430
-	status_label.offset_top = -88
-	status_label.offset_bottom = -44
+	var hint := _ui_label(right_box, UI_FONT_SMALL - 1, COLOR_TEXT_MUTED)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hint.text = "После выдачи гость идёт за столик."
+
+	status_panel = PanelContainer.new()
+	status_panel.anchor_left = 0.5
+	status_panel.anchor_right = 0.5
+	status_panel.anchor_top = 1.0
+	status_panel.anchor_bottom = 1.0
+	status_panel.offset_left = -280
+	status_panel.offset_right = 280
+	status_panel.offset_top = -96
+	status_panel.offset_bottom = -52
+	status_panel.modulate.a = 0.0
+	status_panel.visible = false
+	status_panel.add_theme_stylebox_override("panel", _stylebox_panel(0.78, 14))
+	status_panel.theme = ui_theme
+	layer.add_child(status_panel)
+
+	status_label = _ui_label(status_panel, UI_FONT_MEDIUM, COLOR_TEXT_LIGHT, font_semibold)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_size_override("font_size", 19)
-	status_label.add_theme_color_override("font_color", Color("#fff8ee"))
-	layer.add_child(status_label)
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	status_hide_timer = Timer.new()
+	status_hide_timer.one_shot = true
+	status_hide_timer.wait_time = 3.5
+	status_hide_timer.timeout.connect(_hide_status_panel)
+	add_child(status_hide_timer)
 
 	progress_bar = ProgressBar.new()
 	progress_bar.anchor_left = 0.5
@@ -870,7 +1027,7 @@ func _build_ui() -> void:
 	progress_bar.visible = false
 	layer.add_child(progress_bar)
 
-	progress_label = Label.new()
+	progress_label = _ui_label(layer, UI_FONT_BODY, COLOR_TEXT_LIGHT, font_semibold)
 	progress_label.anchor_left = 0.5
 	progress_label.anchor_right = 0.5
 	progress_label.anchor_top = 1.0
@@ -880,9 +1037,7 @@ func _build_ui() -> void:
 	progress_label.offset_top = -166
 	progress_label.offset_bottom = -138
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	progress_label.add_theme_font_size_override("font_size", 16)
 	progress_label.visible = false
-	layer.add_child(progress_label)
 
 	var cross := Label.new()
 	cross.anchor_left = 0.5
@@ -895,9 +1050,25 @@ func _build_ui() -> void:
 	cross.offset_bottom = 15
 	cross.text = "•"
 	cross.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cross.add_theme_font_size_override("font_size", 26)
+	cross.add_theme_font_size_override("font_size", 24)
 	cross.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
 	layer.add_child(cross)
+
+	interaction_prompt_label = Label.new()
+	interaction_prompt_label.anchor_left = 0.5
+	interaction_prompt_label.anchor_right = 0.5
+	interaction_prompt_label.anchor_top = 0.5
+	interaction_prompt_label.anchor_bottom = 0.5
+	interaction_prompt_label.offset_left = -220
+	interaction_prompt_label.offset_right = 220
+	interaction_prompt_label.offset_top = 34
+	interaction_prompt_label.offset_bottom = 62
+	interaction_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	interaction_prompt_label.add_theme_font_override("font", font_semibold)
+	interaction_prompt_label.add_theme_font_size_override("font_size", UI_FONT_MEDIUM)
+	interaction_prompt_label.add_theme_color_override("font_color", COLOR_TEXT_LIGHT)
+	interaction_prompt_label.visible = false
+	layer.add_child(interaction_prompt_label)
 
 	debug_info_label = Label.new()
 	debug_info_label.anchor_left = 1.0
@@ -909,11 +1080,79 @@ func _build_ui() -> void:
 	debug_info_label.offset_top = 8
 	debug_info_label.offset_bottom = 28
 	debug_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	debug_info_label.add_theme_font_size_override("font_size", 12)
+	debug_info_label.add_theme_font_override("font", font_regular)
+	debug_info_label.add_theme_font_size_override("font_size", UI_FONT_SMALL)
 	debug_info_label.add_theme_color_override("font_color", Color(0.72, 0.72, 0.76, 0.72))
 	layer.add_child(debug_info_label)
 
 	_update_ui()
+
+func _resolve_interaction_text(station: Node) -> String:
+	if not station or not station.has_method("get_interaction_text"):
+		return ""
+
+	match station.station_type:
+		"ingredient":
+			if held_item != "":
+				return "В лапках уже что-то есть"
+			if station.item_id in pretty:
+				return "Взять " + pretty[station.item_id].to_lower()
+			return station.get_interaction_text()
+		"grill":
+			if held_item == "raw_patty":
+				return "Положить на гриль"
+			if busy and pending_action == "cook_patty":
+				return "Котлета жарится"
+			if held_item == "cooked_patty":
+				return "Забрать котлету с гриля"
+			return "Гриль"
+		"assemble":
+			if held_item != "":
+				return "Положить на доску"
+			if burger_stack.size() >= burger_recipe.size():
+				return "Бургер собран"
+			return "Сборка бургера"
+		"fries":
+			if busy:
+				return "Картошка жарится"
+			return "Сделать картошку"
+		"soda":
+			if busy:
+				return "Напиток наливается"
+			return "Налить напиток"
+		"serve":
+			return "Выдать заказ"
+		"trash":
+			return "Выбросить"
+		_:
+			return station.get_interaction_text()
+
+func _update_interaction_prompt() -> void:
+	if not interaction_prompt_label:
+		return
+	if not player or not player.has_method("get_interact_target"):
+		interaction_prompt_label.visible = false
+		return
+
+	var target = player.get_interact_target()
+	if not target:
+		interaction_prompt_label.visible = false
+		return
+
+	var action_text := _resolve_interaction_text(target)
+	if action_text == "":
+		interaction_prompt_label.visible = false
+		return
+
+	interaction_prompt_label.text = "E  " + action_text
+	interaction_prompt_label.visible = true
+
+func _hide_status_panel() -> void:
+	if not status_panel:
+		return
+	var tween := create_tween()
+	tween.tween_property(status_panel, "modulate:a", 0.0, 0.35)
+	tween.tween_callback(func(): status_panel.visible = false)
 
 func _label(parent: Node, pos: Vector2, size: Vector2, font_size: int) -> Label:
 	var l := Label.new()
@@ -1031,7 +1270,9 @@ func _start_action(action: String, text: String, duration: float, output: String
 	cook_timer.start(duration)
 	_show_status(text)
 
-	if action == "make_fries":
+	if action == "cook_patty":
+		_set_grill_indicator(true)
+	elif action == "make_fries":
 		_bounce_node(fryer_visual)
 	elif action == "make_soda":
 		_bounce_node(soda_visual)
@@ -1042,6 +1283,7 @@ func _finish_action() -> void:
 	progress_label.visible = false
 
 	if pending_action == "cook_patty":
+		_set_grill_indicator(false)
 		_show_grill_patty(Color("#744936"))
 		held_item = "cooked_patty"
 		_sync_held_visual()
@@ -1229,23 +1471,27 @@ func _clear_grill_visual() -> void:
 			child.queue_free()
 
 func _add_assembly_layer(item_id: String, index: int) -> void:
-	var y = index * 0.075
+	var y = index * 0.078
 
 	match item_id:
 		"bun_bottom":
-			_cylinder(assembly_visual, Vector3(0, y, 0), 0.21, 0.08, colors[item_id], 90)
+			_cylinder(assembly_visual, Vector3(0, y, 0), 0.22, 0.075, colors[item_id], 90)
 		"cooked_patty":
-			_cylinder(assembly_visual, Vector3(0, y, 0), 0.20, 0.06, colors[item_id], 90)
+			_cylinder(assembly_visual, Vector3(0, y, 0), 0.19, 0.055, colors[item_id], 90)
 		"cheese":
-			_box(assembly_visual, "Layer", Vector3(0, y, 0), Vector3(0.38, 0.035, 0.38), colors[item_id], false)
+			var cheese = _box(assembly_visual, "Layer", Vector3(0, y, 0), Vector3(0.40, 0.028, 0.40), colors[item_id], false)
+			cheese.rotation_degrees.y = 12
 		"lettuce":
-			var m = _cylinder(assembly_visual, Vector3(0, y, 0), 0.22, 0.04, colors[item_id], 90)
-			m.scale = Vector3(1.08, 1.0, 0.86)
+			var leaf = _cylinder(assembly_visual, Vector3(0, y, 0), 0.21, 0.035, colors[item_id], 90)
+			leaf.scale = Vector3(1.12, 1.0, 0.82)
+			leaf.rotation_degrees.y = 18
 		"tomato":
-			_cylinder(assembly_visual, Vector3(0, y, 0), 0.18, 0.04, colors[item_id], 90)
+			_cylinder(assembly_visual, Vector3(0, y, 0), 0.17, 0.032, colors[item_id], 90)
 		"bun_top":
-			var m = _sphere(assembly_visual, Vector3(0, y + 0.05, 0), 0.22, colors[item_id])
-			m.scale = Vector3(1.0, 0.55, 1.0)
+			var m = _sphere(assembly_visual, Vector3(0, y + 0.05, 0), 0.21, colors[item_id])
+			m.scale = Vector3(1.02, 0.52, 1.02)
+			for i in range(6):
+				_sphere(assembly_visual, Vector3(randf_range(-0.08, 0.08), y + 0.11, randf_range(-0.08, 0.08)), 0.012, Color("#fff0da"))
 
 func _clear_assembly_visual() -> void:
 	for child in assembly_visual.get_children():
@@ -1308,12 +1554,16 @@ func _make_small_burger(parent: Node3D, pos: Vector3) -> void:
 
 	_cylinder(root, Vector3(0, 0.00, 0), 0.17, 0.055, colors["bun_bottom"], 90)
 	_cylinder(root, Vector3(0, 0.055, 0), 0.16, 0.045, colors["cooked_patty"], 90)
-	_box(root, "Cheese", Vector3(0, 0.090, 0), Vector3(0.30, 0.025, 0.30), colors["cheese"], false)
-	_cylinder(root, Vector3(0, 0.120, 0), 0.18, 0.030, colors["lettuce"], 90)
-	_cylinder(root, Vector3(0, 0.150, 0), 0.145, 0.028, colors["tomato"], 90)
+	var cheese = _box(root, "Cheese", Vector3(0, 0.090, 0), Vector3(0.32, 0.022, 0.32), colors["cheese"], false)
+	cheese.rotation_degrees.y = 14
+	var leaf = _cylinder(root, Vector3(0, 0.118, 0), 0.18, 0.028, colors["lettuce"], 90)
+	leaf.scale = Vector3(1.08, 1.0, 0.84)
+	_cylinder(root, Vector3(0, 0.148, 0), 0.145, 0.026, colors["tomato"], 90)
 
 	var top = _sphere(root, Vector3(0, 0.205, 0), 0.17, colors["bun_top"])
 	top.scale = Vector3(1.0, 0.52, 1.0)
+	for i in range(5):
+		_sphere(root, Vector3(randf_range(-0.07, 0.07), 0.24, randf_range(-0.07, 0.07)), 0.010, Color("#fff0da"))
 
 func _make_small_fries(parent: Node3D, pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -1345,7 +1595,7 @@ func _bounce_node(node: Node3D) -> void:
 	tween.set_loops(4)
 
 func _update_ui() -> void:
-	if not order_label:
+	if not order_label or not order_items_label:
 		return
 
 	var order_names = []
@@ -1362,16 +1612,30 @@ func _update_ui() -> void:
 
 	var customer_name = current_customer.get("name", "Гость")
 
-	day_label.text = "День %d  •  обслужено %d/%d" % [day, served_today, target_today]
-	order_label.text = "%s заказал: %s" % [customer_name, " + ".join(order_names)]
+	day_label.text = "ДЕНЬ %d    %d / %d" % [day, served_today, target_today]
+	order_label.text = customer_name
+	order_items_label.text = " + ".join(order_names) if not order_names.is_empty() else "—"
 	tray_label.text = "Поднос: " + ("пусто" if tray_names.is_empty() else " + ".join(tray_names))
-	held_label.text = "В лапках: " + ("ничего" if held_item == "" else pretty[held_item])
-	stack_label.text = "Бургер: " + ("ещё не начат" if stack_names.is_empty() else " → ".join(stack_names))
-	money_label.text = "Монеты: %d    Сердечки: %d" % [coins, hearts]
+	held_label.text = "В лапках: " + ("—" if held_item == "" else pretty[held_item])
+	stack_label.text = "Бургер: " + ("не начат" if stack_names.is_empty() else " → ".join(stack_names))
+	money_label.text = "● %d монет   ♥ %d" % [coins, hearts]
 
 	if queue_label:
 		queue_label.text = "В очереди: %d" % queue_data.size()
 
 func _show_status(text: String) -> void:
-	if status_label:
-		status_label.text = text
+	if not status_label or not status_panel:
+		return
+
+	status_label.text = text
+	status_panel.visible = true
+	status_panel.modulate.a = 1.0
+
+	if status_hide_timer:
+		status_hide_timer.start()
+
+func _set_grill_indicator(active: bool) -> void:
+	if grill_indicator and grill_indicator.material_override:
+		grill_indicator.material_override.albedo_color = Color("#ff8a3d") if active else Color("#5a5a5a")
+	elif grill_indicator:
+		grill_indicator.material_override = _mat(Color("#ff8a3d") if active else Color("#5a5a5a"))

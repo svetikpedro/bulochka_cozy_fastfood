@@ -12,6 +12,7 @@ const AMBIENT_ENERGY := 0.28
 const AMBIENT_COLOR := Color("#fff0e1")
 const ENV_BACKGROUND_COLOR := Color("#bde5cd")
 const TONEMAP_EXPOSURE := 1.0
+const GAME_VERSION := "0.0.01"
 
 var player
 
@@ -44,6 +45,7 @@ var day_label: Label
 var queue_label: Label
 var progress_bar: ProgressBar
 var progress_label: Label
+var debug_info_label: Label
 
 var tray = []
 var current_order = []
@@ -160,6 +162,12 @@ func _process(_delta: float) -> void:
 
 		var elapsed := total - cook_timer.time_left
 		progress_bar.value = clamp(elapsed / total * 100.0, 0.0, 100.0)
+
+	if debug_info_label:
+		debug_info_label.text = "FPS: %d   v%s" % [
+			Engine.get_frames_per_second(),
+			GAME_VERSION
+		]
 
 func _mat(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -680,6 +688,20 @@ func _build_ui() -> void:
 	cross.add_theme_font_size_override("font_size", 26)
 	cross.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
 	layer.add_child(cross)
+
+	debug_info_label = Label.new()
+	debug_info_label.anchor_left = 1.0
+	debug_info_label.anchor_right = 1.0
+	debug_info_label.anchor_top = 0.0
+	debug_info_label.anchor_bottom = 0.0
+	debug_info_label.offset_left = -150
+	debug_info_label.offset_right = -10
+	debug_info_label.offset_top = 8
+	debug_info_label.offset_bottom = 28
+	debug_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	debug_info_label.add_theme_font_size_override("font_size", 12)
+	debug_info_label.add_theme_color_override("font_color", Color(0.72, 0.72, 0.76, 0.72))
+	layer.add_child(debug_info_label)
 
 	_update_ui()
 

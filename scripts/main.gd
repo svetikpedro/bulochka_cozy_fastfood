@@ -328,17 +328,17 @@ func _build_front_facade(world: Node3D) -> void:
 	_box(facade, "WindowSillR", Vector3(5.62, 1.25, -3.6), Vector3(0.18, 0.08, 2.3), Color("#fff0da"), false)
 
 func _build_counter_decor(world: Node3D) -> void:
-	_box(world, "FrontCounter", Vector3(0, 0.65, -1.8), Vector3(8.6, 1.3, 0.75), Color("#f19bb6"))
-	_box(world, "CounterTop", Vector3(0, 1.38, -1.8), Vector3(8.8, 0.18, 0.95), Color("#fff0da"))
+	_box(world, "FrontCounter", Vector3(0, 0.50, -1.8), Vector3(8.6, 1.0, 0.75), Color("#f19bb6"))
+	_box(world, "CounterTop", Vector3(0, 1.01, -1.8), Vector3(8.8, 0.18, 0.95), Color("#fff0da"))
 
 	for x in [-3.6, -1.8, 0.0, 1.8, 3.6]:
-		_box(world, "CounterPanel", Vector3(x, 0.65, -2.18), Vector3(0.55, 1.05, 0.06), Color("#e888a4"), false)
-		_box(world, "CounterPanelTrim", Vector3(x, 1.12, -2.19), Vector3(0.58, 0.05, 0.05), Color("#fff0da"), false)
+		_box(world, "CounterPanel", Vector3(x, 0.50, -2.18), Vector3(0.55, 0.85, 0.06), Color("#e888a4"), false)
+		_box(world, "CounterPanelTrim", Vector3(x, 0.76, -2.19), Vector3(0.58, 0.05, 0.05), Color("#fff0da"), false)
 
 	var serve = _station(
 		world,
 		"Serve",
-		Vector3(0, 1.57, -1.8),
+		Vector3(0, 1.12, -1.8),
 		Vector3(2.0, 0.22, 0.72),
 		Color("#fff2ac"),
 		"serve",
@@ -347,13 +347,13 @@ func _build_counter_decor(world: Node3D) -> void:
 
 	tray_visual = Node3D.new()
 	tray_visual.name = "TrayVisual"
-	tray_visual.position = Vector3(0, 0.18, 0)
+	tray_visual.position = Vector3(0, 0.08, 0)
 	serve.add_child(tray_visual)
 	_box(tray_visual, "TrayBase", Vector3(0, 0, 0), Vector3(1.45, 0.06, 0.58), Color("#de809e"), false)
 
 	var register_root := Node3D.new()
 	register_root.name = "Register"
-	register_root.position = Vector3(-2.55, 1.60, -1.78)
+	register_root.position = Vector3(-2.55, 1.08, -1.78)
 	world.add_child(register_root)
 
 	_box(register_root, "RegisterBody", Vector3(0, 0, 0), Vector3(1.05, 0.75, 0.60), Color("#f2a7bd"), false)
@@ -370,7 +370,7 @@ func _build_counter_decor(world: Node3D) -> void:
 
 	var shelf := Node3D.new()
 	shelf.name = "CounterShelf"
-	shelf.position = Vector3(2.35, 1.55, -1.78)
+	shelf.position = Vector3(2.35, 1.18, -1.78)
 	world.add_child(shelf)
 	_box(shelf, "ShelfBoard", Vector3(0, 0, 0), Vector3(0.85, 0.06, 0.35), Color("#fff0da"), false)
 	for i in range(3):
@@ -381,60 +381,60 @@ func _build_counter_decor(world: Node3D) -> void:
 	_label3d(world, "COZY FAST FOOD", Vector3(0, 3.05, 4.55), 18, Color("#8a6678"), 5)
 	_label3d(world, "BURGERS • FRIES • DRINKS", Vector3(0, 2.72, 4.55), 14, Color("#8a6678"), 4)
 
-	_box(world, "CounterSign", Vector3(-3.9, 2.35, -2.05), Vector3(0.55, 0.35, 0.06), Color("#fff0da"), false)
-	_label3d(world, "OPEN", Vector3(-3.9, 2.35, -2.12), 16, Color("#6b5060"), 4)
+	_box(world, "CounterSign", Vector3(-3.9, 1.85, -2.05), Vector3(0.55, 0.35, 0.06), Color("#fff0da"), false)
+	_label3d(world, "OPEN", Vector3(-3.9, 1.85, -2.12), 16, Color("#6b5060"), 4)
 
 func _build_kitchen_decor(world: Node3D) -> void:
 	var prep_colors = [Color("#c5d9ef"), Color("#d7d7eb"), Color("#d9ead3"), Color("#e9d7ef")]
-	var prep_positions = [Vector3(-4.4, 0.55, 2.8), Vector3(-1.7, 0.55, 2.8), Vector3(1.0, 0.55, 2.8), Vector3(3.7, 0.55, 2.8)]
+	var prep_positions = [Vector3(-4.4, 0.45, 2.8), Vector3(-1.7, 0.45, 2.8), Vector3(1.0, 0.45, 2.8), Vector3(3.7, 0.45, 2.8)]
 	var prep_names = ["PrepA", "PrepB", "PrepC", "PrepD"]
 
 	for i in range(4):
 		var pos = prep_positions[i]
 		_box(world, prep_names[i], pos, Vector3(2.0, 1.1, 1.2), prep_colors[i])
-		_box(world, prep_names[i] + "Top", Vector3(pos.x, 1.18, pos.z), Vector3(2.05, 0.08, 1.25), Color("#fff0da"), false)
+		_box(world, prep_names[i] + "Top", Vector3(pos.x, pos.y + 0.63, pos.z), Vector3(2.05, 0.08, 1.25), Color("#fff0da"), false)
 		_box(world, prep_names[i] + "Kick", Vector3(pos.x, 0.08, pos.z + 0.52), Vector3(1.85, 0.12, 0.08), Color("#d8c4b0"), false)
 		for dx in [-0.45, 0.0, 0.45]:
-			_box(world, prep_names[i] + "Door", Vector3(pos.x + dx, 0.55, pos.z + 0.58), Vector3(0.52, 0.72, 0.06), prep_colors[i].darkened(0.08), false)
-			_box(world, prep_names[i] + "Handle", Vector3(pos.x + dx + 0.16, 0.55, pos.z + 0.63), Vector3(0.08, 0.06, 0.04), Color("#c8a888"), false)
+			_box(world, prep_names[i] + "Door", Vector3(pos.x + dx, pos.y, pos.z + 0.58), Vector3(0.52, 0.72, 0.06), prep_colors[i].darkened(0.08), false)
+			_box(world, prep_names[i] + "Handle", Vector3(pos.x + dx + 0.16, pos.y, pos.z + 0.63), Vector3(0.08, 0.06, 0.04), Color("#c8a888"), false)
 
-	_box(world, "Backsplash", Vector3(0, 1.55, 4.72), Vector3(10.5, 0.55, 0.08), Color("#fff0da"), false)
-	_box(world, "BacksplashTile", Vector3(0, 1.55, 4.68), Vector3(10.5, 0.45, 0.04), Color("#efcad3"), false)
+	_box(world, "Backsplash", Vector3(0, 1.35, 4.72), Vector3(10.5, 0.55, 0.08), Color("#fff0da"), false)
+	_box(world, "BacksplashTile", Vector3(0, 1.35, 4.68), Vector3(10.5, 0.45, 0.04), Color("#efcad3"), false)
 
 	for sx in [-4.8, -1.2, 2.4]:
-		_box(world, "KitchenShelf", Vector3(sx, 2.35, 4.65), Vector3(1.4, 0.08, 0.35), Color("#fff0da"), false)
-		_box(world, "JarA", Vector3(sx - 0.25, 2.48, 4.65), Vector3(0.12, 0.18, 0.12), Color("#cfe7ff"), false)
-		_box(world, "JarB", Vector3(sx + 0.25, 2.48, 4.65), Vector3(0.12, 0.18, 0.12), Color("#ffd2df"), false)
+		_box(world, "KitchenShelf", Vector3(sx, 2.15, 4.65), Vector3(1.4, 0.08, 0.35), Color("#fff0da"), false)
+		_box(world, "JarA", Vector3(sx - 0.25, 2.28, 4.65), Vector3(0.12, 0.18, 0.12), Color("#cfe7ff"), false)
+		_box(world, "JarB", Vector3(sx + 0.25, 2.28, 4.65), Vector3(0.12, 0.18, 0.12), Color("#ffd2df"), false)
 
 	_box(world, "SupplyBox", Vector3(-5.2, 0.35, 3.5), Vector3(0.45, 0.35, 0.45), Color("#f4d6c8"), false)
 	_box(world, "SupplyBox2", Vector3(5.0, 0.35, 3.2), Vector3(0.38, 0.28, 0.38), Color("#ffe0e8"), false)
 
-	var bun_bottom = _station(world, "BunBottom", Vector3(-4.75, 1.25, 2.7), Vector3(0.62, 0.25, 0.7), colors["bun_bottom"], "ingredient", "Нижняя булочка", "bun_bottom")
+	var bun_bottom = _station(world, "BunBottom", Vector3(-4.75, 1.03, 2.7), Vector3(0.62, 0.25, 0.7), colors["bun_bottom"], "ingredient", "Нижняя булочка", "bun_bottom")
 	_box(bun_bottom, "Tray", Vector3(0, -0.08, 0), Vector3(0.72, 0.08, 0.78), Color("#c8dbea"), false)
 	_cylinder(bun_bottom, Vector3(0, 0.19, 0), 0.20, 0.08, colors["bun_bottom"], 90)
 
-	var raw_patty = _station(world, "RawPatty", Vector3(-4.0, 1.25, 2.7), Vector3(0.62, 0.25, 0.7), colors["raw_patty"], "ingredient", "Сырая котлета", "raw_patty")
+	var raw_patty = _station(world, "RawPatty", Vector3(-4.0, 1.03, 2.7), Vector3(0.62, 0.25, 0.7), colors["raw_patty"], "ingredient", "Сырая котлета", "raw_patty")
 	_box(raw_patty, "Tray", Vector3(0, -0.08, 0), Vector3(0.72, 0.08, 0.78), Color("#c8dbea"), false)
 	_cylinder(raw_patty, Vector3(0, 0.18, 0), 0.19, 0.06, colors["raw_patty"], 90)
 
-	var cheese = _station(world, "Cheese", Vector3(-2.05, 1.25, 2.7), Vector3(0.55, 0.18, 0.7), colors["cheese"], "ingredient", "Сыр", "cheese")
+	var cheese = _station(world, "Cheese", Vector3(-2.05, 1.03, 2.7), Vector3(0.55, 0.18, 0.7), colors["cheese"], "ingredient", "Сыр", "cheese")
 	_box(cheese, "Tray", Vector3(0, -0.08, 0), Vector3(0.68, 0.08, 0.75), Color("#c8dbea"), false)
 	_box(cheese, "CheeseVisual", Vector3(0, 0.15, 0), Vector3(0.34, 0.035, 0.34), colors["cheese"], false)
 
-	var lettuce = _station(world, "Lettuce", Vector3(-1.35, 1.25, 2.7), Vector3(0.55, 0.18, 0.7), colors["lettuce"], "ingredient", "Салат", "lettuce")
+	var lettuce = _station(world, "Lettuce", Vector3(-1.35, 1.03, 2.7), Vector3(0.55, 0.18, 0.7), colors["lettuce"], "ingredient", "Салат", "lettuce")
 	_box(lettuce, "Tray", Vector3(0, -0.08, 0), Vector3(0.68, 0.08, 0.75), Color("#c8dbea"), false)
 	_cylinder(lettuce, Vector3(0, 0.15, 0), 0.20, 0.04, colors["lettuce"], 90)
 
-	var tomato = _station(world, "Tomato", Vector3(0.65, 1.25, 2.7), Vector3(0.55, 0.18, 0.7), colors["tomato"], "ingredient", "Помидор", "tomato")
+	var tomato = _station(world, "Tomato", Vector3(0.65, 1.03, 2.7), Vector3(0.55, 0.18, 0.7), colors["tomato"], "ingredient", "Помидор", "tomato")
 	_box(tomato, "Tray", Vector3(0, -0.08, 0), Vector3(0.68, 0.08, 0.75), Color("#c8dbea"), false)
 	_cylinder(tomato, Vector3(0, 0.15, 0), 0.16, 0.04, colors["tomato"], 90)
 
-	var bun_top = _station(world, "BunTop", Vector3(1.35, 1.25, 2.7), Vector3(0.62, 0.25, 0.7), colors["bun_top"], "ingredient", "Верхняя булочка", "bun_top")
+	var bun_top = _station(world, "BunTop", Vector3(1.35, 1.03, 2.7), Vector3(0.62, 0.25, 0.7), colors["bun_top"], "ingredient", "Верхняя булочка", "bun_top")
 	_box(bun_top, "Tray", Vector3(0, -0.08, 0), Vector3(0.72, 0.08, 0.78), Color("#c8dbea"), false)
 	var top = _sphere(bun_top, Vector3(0, 0.20, 0), 0.21, colors["bun_top"])
 	top.scale = Vector3(1.0, 0.55, 1.0)
 
-	var grill_station = _station(world, "Grill", Vector3(3.35, 1.25, 2.7), Vector3(0.95, 0.25, 0.8), Color("#5f6066"), "grill", "Гриль")
+	var grill_station = _station(world, "Grill", Vector3(3.35, 1.03, 2.7), Vector3(0.95, 0.25, 0.8), Color("#5f6066"), "grill", "Гриль")
 	_box(grill_station, "GrillBody", Vector3(0, -0.05, 0), Vector3(1.05, 0.35, 0.88), Color("#6a6b72"), false)
 	_box(grill_station, "GrillBack", Vector3(0, 0.22, 0.38), Vector3(0.95, 0.28, 0.08), Color("#4a4b50"), false)
 	grill_visual = Node3D.new()
@@ -446,13 +446,13 @@ func _build_kitchen_decor(world: Node3D) -> void:
 	for i in range(3):
 		_box(grill_station, "GrillButton", Vector3(-0.28 + i * 0.28, 0.22, -0.38), Vector3(0.12, 0.08, 0.06), [Color("#e96161"), Color("#ffd85c"), Color("#8dcf72")][i], false)
 
-	var assembly_station = _station(world, "Assembly", Vector3(4.1, 1.25, 2.7), Vector3(0.85, 0.25, 0.8), Color("#fff1d4"), "assemble", "Сборка бургера")
+	var assembly_station = _station(world, "Assembly", Vector3(4.1, 1.03, 2.7), Vector3(0.85, 0.25, 0.8), Color("#fff1d4"), "assemble", "Сборка бургера")
 	_box(assembly_station, "AssemblyBoard", Vector3(0, 0.02, 0), Vector3(0.78, 0.04, 0.68), Color("#fff0da"), false)
 	assembly_visual = Node3D.new()
 	assembly_visual.position = Vector3(0, 0.16, 0)
 	assembly_station.add_child(assembly_visual)
 
-	var fryer_station = _station(world, "Fryer", Vector3(-4.6, 1.35, 0.65), Vector3(1.5, 0.4, 1.0), Color("#b7bcc4"), "fries", "Фритюрница")
+	var fryer_station = _station(world, "Fryer", Vector3(-4.6, 0.93, 0.65), Vector3(1.5, 0.4, 1.0), Color("#b7bcc4"), "fries", "Фритюрница")
 	_box(fryer_station, "FryerBody", Vector3(0, -0.08, 0), Vector3(1.55, 0.55, 1.05), Color("#9aa0a8"), false)
 	_box(fryer_station, "FryerPanel", Vector3(0, 0.05, -0.48), Vector3(0.55, 0.18, 0.08), Color("#7a8088"), false)
 	for i in range(2):
@@ -468,7 +468,7 @@ func _build_kitchen_decor(world: Node3D) -> void:
 		var fry = _box(fryer_visual, "Fry", Vector3(fx, 0.15, fz), Vector3(0.08, 0.30, 0.08), Color("#f5cf57"), false)
 		fry.rotation_degrees.z = 8 + i * 5
 
-	var soda_station = _station(world, "Soda", Vector3(4.6, 1.75, 0.65), Vector3(1.4, 1.7, 0.8), Color("#94d7df"), "soda", "Автомат напитков")
+	var soda_station = _station(world, "Soda", Vector3(4.6, 1.38, 0.65), Vector3(1.4, 1.7, 0.8), Color("#94d7df"), "soda", "Автомат напитков")
 	_box(soda_station, "SodaScreen", Vector3(0, 0.35, -0.35), Vector3(0.75, 0.45, 0.08), Color("#fff0f5"), false)
 	_box(soda_station, "SodaDripTray", Vector3(0, -0.55, -0.35), Vector3(0.55, 0.08, 0.35), Color("#c8dbea"), false)
 	for i in range(3):
